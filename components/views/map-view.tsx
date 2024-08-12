@@ -10,7 +10,7 @@ import Map, {
 import "maplibre-gl/dist/maplibre-gl.css";
 import { MapControls } from "./map-controls";
 import { createContext, useState } from "react";
-import { Sidebar } from "./sidebar";
+import { Spinner } from "../ui/spinner";
 
 export type MapViewState = Partial<ViewState> & {
 	bounds?: LngLatBoundsLike;
@@ -25,21 +25,25 @@ export type MapViewState = Partial<ViewState> & {
 export const MapViewContext = createContext<{
 	initialViewState?: MapViewState;
 	currentViewState?: ViewState | null;
-	title?: string;
-	description?: string;
+	loadingMessage?: string;
+	setLoadingMessage?: (message: string) => void;
 }>({});
 
-export function MapView() {
-	const [showSidebar, setShowSidebar] = useState(false);
+export function MapView({
+	loadingMessage,
+	setLoadingMessage,
+}: {
+	loadingMessage: string;
+	setLoadingMessage: (message: string) => void;
+}) {
 	const theme = useTheme();
 	const [currentViewState, setCurrentViewState] = useState<ViewState | null>(null);
 
+	// Center of Europe
 	const initialViewState: MapViewState = {
-		latitude: 52.52,
-		longitude: 13.405,
-		zoom: 12,
-		bearing: 0,
-		pitch: 0,
+		latitude: 50.0,
+		longitude: 15.0,
+		zoom: 1.5,
 	};
 
 	const mapMove = (event: ViewStateChangeEvent) => {
@@ -62,12 +66,17 @@ export function MapView() {
 					value={{
 						initialViewState,
 						currentViewState,
-						title: "Berlin 🍺",
-						description: "My go to places in Berlin",
+						loadingMessage,
+						setLoadingMessage,
 					}}
 				>
-					<Sidebar showSidebar={showSidebar} setShowSidebar={setShowSidebar} />
-					<MapControls showSidebar={showSidebar} setShowSidebar={setShowSidebar} />
+					<MapControls />
+					{loadingMessage ? (
+						<div className="fixed flex gap-3 items-center justify-center bg-white/50 dark:bg-zinc-800/50 top-0 left-0 w-screen h-screen z-50 text-4xl text-zinc-700 dark:text-zinc-300">
+							<Spinner />
+							<p>{loadingMessage}</p>
+						</div>
+					) : null}
 				</MapViewContext.Provider>
 			</Map>
 		</div>
