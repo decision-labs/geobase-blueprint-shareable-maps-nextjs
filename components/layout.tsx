@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
+import { SupabaseContext } from "./supabase-provider";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
 
 export function Layout({ children }: { children: React.ReactNode }) {
-	useEffect(() => {}, []);
-	return children;
+	return <main className={`flex min-h-screen h-full w-full relative`}>{children}</main>;
 }

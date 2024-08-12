@@ -2,7 +2,7 @@
 import { AuthSession, createClient, SupabaseClient } from "@supabase/supabase-js";
 import { useRouter } from "next/router";
 import { usePathname } from "next/navigation";
-import { createContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { MaterialSymbol } from "react-material-symbols";
 
@@ -23,6 +23,14 @@ if (!GEOBASE_ANON_KEY) {
 }
 
 const supabase = createClient(GEOBASE_URL, GEOBASE_ANON_KEY);
+
+export const useSupabase = () => {
+	const context = useContext(SupabaseContext);
+	if (context === undefined) {
+		throw new Error("useSupabase must be used within a SupabaseContextProvider");
+	}
+	return context;
+};
 
 export const SupabaseContext = createContext<SupabaseContextType>({ client: supabase, auth: null });
 
