@@ -16,7 +16,7 @@ export function AccountDetails({
 	return (
 		<aside
 			className={cn(
-				"absolute flex flex-col gap-2 items-center py-8 px-4 w-72 h-fit top-4 right-4 rounded-xl bg-white/30 dark:bg-zinc-600/30 backdrop-blur-md border border-transparent dark:border-zinc-800 shadow-xl z-50 text-base transition duration-200 ease-in-out",
+				"absolute flex flex-col gap-2 items-center py-8 px-4 w-72 h-fit top-4 right-4 rounded-xl bg-white/30 dark:bg-zinc-600/30 backdrop-blur-md border border-transparent dark:border-zinc-700/50 shadow-xl z-50 text-base transition duration-200 ease-in-out",
 				showAccountDetails ? "translate-x-0" : "translate-x-[150%]",
 			)}
 		>

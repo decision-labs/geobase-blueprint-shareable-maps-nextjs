@@ -42,6 +42,10 @@ export default function SignUp() {
 			password,
 			options: {
 				emailRedirectTo: "/",
+				data: {
+					nickname: email.split("@")[0],
+					photo_url: "",
+				},
 			},
 		});
 

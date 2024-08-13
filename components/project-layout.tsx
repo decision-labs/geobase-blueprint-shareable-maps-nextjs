@@ -1,8 +1,11 @@
 import { createContext, useContext, useState } from "react";
 
 export type MapProject = {
-	id: number;
+	id?: number;
 	uuid: string;
+	created_at?: Date;
+	updated_at?: Date;
+	published: boolean;
 	title: string;
 	description: string;
 	bounds: {
@@ -11,9 +14,7 @@ export type MapProject = {
 		south: number;
 		west: number;
 	} | null;
-	created_by: string | null;
-	created_at: string;
-	is_draft: boolean;
+	profile_id: string;
 };
 
 export const MapProjectContext = createContext<{

@@ -15,14 +15,24 @@ const GEOBASE_URL = process.env.NEXT_PUBLIC_GEOBASE_URL as string;
 const GEOBASE_ANON_KEY = process.env.NEXT_PUBLIC_GEOBASE_ANON_KEY as string;
 
 if (!GEOBASE_URL) {
-	throw new Error("Missing env variable GEOBASE_URL");
+	throw new Error("Missing env variable NEXT_PUBLIC_GEOBASE_URL");
 }
 
 if (!GEOBASE_ANON_KEY) {
-	throw new Error("Missing env variable GEOBASE_ANON_KEY");
+	throw new Error("Missing env variable NEXT_PUBLIC_GEOBASE_ANON_KEY");
 }
 
 const supabase = createClient(GEOBASE_URL, GEOBASE_ANON_KEY);
+
+export function getMapTileURL(tileName: string, key: string = GEOBASE_ANON_KEY, params: Record<string, string> = {}) {
+	const searchParams = new URLSearchParams({
+		...params,
+		apikey: key,
+	});
+	const url = `${GEOBASE_URL}/tileserver/v1/${tileName}/{z}/{x}/{y}.pbf?${searchParams}`;
+	console.log(url);
+	return url;
+}
 
 export const useSupabase = () => {
 	const context = useContext(SupabaseContext);

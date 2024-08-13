@@ -1,7 +1,7 @@
 import { MaterialSymbol } from "react-material-symbols";
 import { AccountMenu } from "@/components/views/account-menu";
 import { Button } from "../ui/button";
-import { useMap } from "react-map-gl/maplibre";
+import { MapLayerMouseEvent, useMap } from "react-map-gl/maplibre";
 import { useContext, useEffect, useState } from "react";
 import { MapViewContext } from "./map-view";
 import { Tool, Toolbar } from "./toolbar";
@@ -10,12 +10,11 @@ import { AccountDetails } from "./account-details";
 import { useMapProject } from "../project-layout";
 
 export function MapControls() {
-	const { current: map } = useMap();
+	const mapController = useMap();
 	const mapView = useContext(MapViewContext);
 	const [showRecenter, setShowRecenter] = useState(false);
 	const [showSidebar, setShowSidebar] = useState(false);
 	const [showAccountDetails, setShowAccountDetails] = useState(false);
-	const [selectedTool, setSelectedTool] = useState<Tool>("hand");
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
 	const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -51,7 +50,7 @@ export function MapControls() {
 		if (!mapView.initialViewState.latitude) return;
 		if (!mapView.initialViewState.longitude) return;
 
-		map?.flyTo({
+		mapController.current?.flyTo({
 			center: {
 				lat: mapView.initialViewState.latitude,
 				lng: mapView.initialViewState.longitude,
@@ -75,39 +74,70 @@ export function MapControls() {
 		setShowRecenter(!isViewStateCloseEnough);
 	}, [mapView.currentViewState]);
 
-	useEffect(() => {
-		window.addEventListener("keydown", (e) => {
-			const activeElement = document.activeElement as HTMLElement | null;
-			if (activeElement) {
-				const isInputFocused = activeElement.tagName === "INPUT" || activeElement.tagName === "TEXTAREA";
-				const isEditableFocused = activeElement.hasAttribute("contenteditable");
+	const handleKeydown = (e: KeyboardEvent) => {
+		const activeElement = document.activeElement as HTMLElement | null;
+		if (activeElement) {
+			const isInputFocused = activeElement.tagName === "INPUT" || activeElement.tagName === "TEXTAREA";
+			const isEditableFocused = activeElement.hasAttribute("contenteditable");
 
-				if (isInputFocused || isEditableFocused) {
-					if (e.key === "Escape") {
-						activeElement.blur();
-						e.preventDefault();
-					}
-					return;
+			if (isInputFocused || isEditableFocused) {
+				if (e.key === "Escape") {
+					activeElement.blur();
+					e.preventDefault();
 				}
+				return;
 			}
+		}
 
-			if (e.key === "Escape") setSelectedTool("hand");
-			if (e.key === " ") recenter();
-			if (e.key === "1") setSelectedTool("hand");
-			if (e.key === "2") setSelectedTool("draw");
-			if (e.key === "3") setSelectedTool("pin");
-			if (e.key === "4") setSelectedTool("sign");
-			if (e.key === "5") setSelectedTool("attachment");
-		});
+		if (!mapView || !mapView.setSelectedTool) return;
+
+		if (e.key === "Escape") mapView.setSelectedTool("hand");
+		if (e.key === " ") recenter();
+		if (e.key === "1") mapView.setSelectedTool("hand");
+		if (e.key === "2") mapView.setSelectedTool("draw");
+		if (e.key === "3") mapView.setSelectedTool("pin");
+		if (e.key === "4") mapView.setSelectedTool("sign");
+		if (e.key === "5") mapView.setSelectedTool("attachment");
+	};
+
+	useEffect(() => {
+		window.addEventListener("keydown", handleKeydown);
+		return () => {
+			window.removeEventListener("keydown", handleKeydown);
+		};
 	}, []);
+
+	useEffect(() => {
+		if (!mapView) return;
+		if (!mapView.setCursor) return;
+		if (!mapView || !mapView.selectedTool) return;
+		if (!mapController.current) return;
+
+		if (mapView.selectedTool === "hand") {
+			mapView.setCursor(undefined);
+			mapController.current.getMap().dragPan.enable();
+		} else if (mapView.selectedTool === "draw") {
+			mapView.setCursor("crosshair");
+			mapController.current.getMap().dragPan.disable();
+		} else if (mapView.selectedTool === "pin") {
+			mapView.setCursor("crosshair");
+			mapController.current.getMap().dragPan.enable();
+		} else if (mapView.selectedTool === "sign") {
+			mapView.setCursor("crosshair");
+			mapController.current.getMap().dragPan.enable();
+		} else if (mapView.selectedTool === "attachment") {
+			mapView.setCursor("crosshair");
+			mapController.current.getMap().dragPan.enable();
+		}
+	}, [mapView.selectedTool]);
 
 	return (
 		<>
-			<header className="absolute flex items-center gap-4 justify-between w-fit h-fit top-4 left-1/2 -translate-x-1/2 py-2 px-4 rounded-full bg-white/30 dark:bg-zinc-600/30 backdrop-blur-md border border-transparent dark:border-zinc-800 shadow-xl z-50">
+			<header className="absolute flex items-center gap-4 justify-between w-fit h-fit top-4 left-1/2 -translate-x-1/2 py-2 px-4 rounded-full bg-white/30 dark:bg-zinc-600/30 backdrop-blur-md border border-transparent dark:border-zinc-700/50 shadow-xl z-50">
 				<Button
 					variant={"ghost"}
 					size={"icon"}
-					className="!rounded-full"
+					className="!rounded-full hover:!shadow-md border border-transparent hover:border-zinc-200/50 dark:hover:border-zinc-700"
 					onClick={() => setShowSidebar(!showSidebar)}
 				>
 					<MaterialSymbol icon="menu" size={20} />
@@ -172,7 +202,7 @@ export function MapControls() {
 				) : null}
 			</header>
 			<Sidebar showSidebar={showSidebar} setShowSidebar={setShowSidebar} />
-			<Toolbar selectedTool={selectedTool} setSelectedTool={setSelectedTool} />
+			<Toolbar />
 			<AccountDetails showAccountDetails={showAccountDetails} setShowAccountDetails={setShowAccountDetails} />
 		</>
 	);

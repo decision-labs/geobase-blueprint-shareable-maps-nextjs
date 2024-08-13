@@ -1,4 +1,31 @@
+import { Tool } from "@/components/views/toolbar";
 import { StyleSpecification } from "maplibre-gl";
+
+export const tools: {
+	icon: string;
+	tool: Tool;
+}[] = [
+	{
+		icon: "🖐️",
+		tool: "hand",
+	},
+	{
+		icon: "✏️",
+		tool: "draw",
+	},
+	{
+		icon: "📍",
+		tool: "pin",
+	},
+	{
+		icon: "💬",
+		tool: "sign",
+	},
+	{
+		icon: "📎",
+		tool: "attachment",
+	},
+];
 
 export const neighborhoodStyles: {
 	light: StyleSpecification;
@@ -115,7 +142,7 @@ export const neighborhoodStyles: {
 				id: "background",
 				type: "background",
 				paint: {
-					"background-color": "#000000",
+					"background-color": "#101010",
 				},
 			},
 			{
@@ -124,7 +151,7 @@ export const neighborhoodStyles: {
 				source: "osm",
 				"source-layer": "landcover",
 				paint: {
-					"fill-color": "#152222",
+					"fill-color": "#152A22",
 				},
 			},
 			{
@@ -133,7 +160,7 @@ export const neighborhoodStyles: {
 				source: "osm",
 				"source-layer": "water",
 				paint: {
-					"fill-color": "#0E1422",
+					"fill-color": "#1C3262",
 				},
 			},
 			{
@@ -142,7 +169,7 @@ export const neighborhoodStyles: {
 				source: "osm",
 				"source-layer": "waterway",
 				paint: {
-					"line-color": "#0E1422",
+					"line-color": "#1C3262",
 					"line-width": 1,
 				},
 			},
@@ -152,7 +179,7 @@ export const neighborhoodStyles: {
 				source: "osm",
 				"source-layer": "transportation",
 				paint: {
-					"line-color": "#313144",
+					"line-color": "#3A3B4950",
 					"line-width": 1,
 				},
 			},
@@ -162,7 +189,7 @@ export const neighborhoodStyles: {
 				source: "osm",
 				"source-layer": "boundary",
 				paint: {
-					"line-color": "#FFFFFF07",
+					"line-color": "#FFFFFF10",
 					"line-width": 1,
 				},
 			},

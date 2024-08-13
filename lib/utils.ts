@@ -21,3 +21,17 @@ export function createUUID() {
 
 	return `${parts[0]}-${parts[1]}-${parts[2]}-${parts[3]}`;
 }
+
+export type GeoJSONFeature = {
+	type: "Feature";
+	geometry: {
+		type: "Point" | "LineString" | "Polygon";
+		coordinates: number[] | number[][];
+	};
+	properties: Record<string, any>;
+};
+
+export type GeoJSONFeatureCollection = {
+	type: "FeatureCollection";
+	features: GeoJSONFeature[];
+};

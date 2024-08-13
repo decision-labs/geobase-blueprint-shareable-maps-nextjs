@@ -6,6 +6,7 @@
 		"dev": "NODE_ENV=development next dev",
 		"build": "next build",
 		"start": "next start",
+		"supabase": "supabase",
 		"lint": "next lint"
 	},
 	"dependencies": {
@@ -32,12 +33,13 @@
 		"tailwindcss-animate": "^1.0.7"
 	},
 	"devDependencies": {
-		"@types/node": "^20",
+		"@types/node": "^20.14.15",
 		"@types/react": "^18",
 		"@types/react-dom": "^18",
 		"eslint": "^8",
 		"eslint-config-next": "14.2.5",
 		"postcss": "^8",
+		"supabase": "^1.188.4",
 		"tailwindcss": "^3.4.1",
 		"typescript": "^5"
 	}
