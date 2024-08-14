@@ -21,7 +21,7 @@ export function AccountDetails({
 			)}
 		>
 			<Button
-				variant="ghost"
+				variant="elevated"
 				size="icon"
 				className="absolute top-2 right-2"
 				onClick={() => {

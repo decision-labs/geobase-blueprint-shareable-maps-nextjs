@@ -12,19 +12,18 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSupabase } from "../supabase-provider";
-import { useContext } from "react";
-import { MapViewContext } from "../views/map-view";
 import { useTheme } from "next-themes";
+import { useMapController } from "./map-controller";
 
 export function AccountMenu({ setShowAccountDetails }: { setShowAccountDetails: (show: boolean) => void }) {
 	const supabase = useSupabase();
-	const mapView = useContext(MapViewContext);
+	const mapController = useMapController();
 	const theme = useTheme();
 	const signOut = async () => {
-		if (mapView.setLoadingMessage) {
-			mapView.setLoadingMessage("Signing out...");
+		if (mapController) {
+			mapController.setLoadingMessage("Signing out...");
 			await supabase.client.auth.signOut();
-			mapView.setLoadingMessage("");
+			mapController.setLoadingMessage("");
 		}
 	};
 

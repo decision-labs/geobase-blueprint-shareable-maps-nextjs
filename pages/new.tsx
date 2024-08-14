@@ -1,6 +1,6 @@
 import { MapProject, MapProjectContext, ProjectLayout } from "@/components/project-layout";
 import { useSupabase } from "@/components/supabase-provider";
-import { MapView } from "@/components/views/map-view";
+import { MapController } from "@/components/views/map-controller";
 import { createUUID } from "@/lib/utils";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -22,7 +22,7 @@ export default function NewMapPage() {
 		if (data) {
 			const createdProject = data[0] as MapProject;
 			setMapProject(createdProject);
-			router.replace(`/maps/${createdProject.uuid}`);
+			router.push(`/maps/${createdProject.uuid}`);
 		}
 	}
 
@@ -55,7 +55,7 @@ export default function NewMapPage() {
 			}}
 		>
 			<ProjectLayout>
-				<MapView loadingMessage={loadingMessage} setLoadingMessage={setLoadingMessage} />
+				<MapController loadingMessage={loadingMessage} setLoadingMessage={setLoadingMessage} />
 			</ProjectLayout>
 		</MapProjectContext.Provider>
 	);

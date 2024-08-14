@@ -45,7 +45,7 @@ export function Sidebar({
 				<ResizablePanel className="p-3 flex flex-col gap-1">
 					<h2 className="pb-2 flex items-center gap-4 justify-between text-sm font-semibold">
 						My Maps
-						<Button variant={"ghost"} size={"icon"} onClick={() => router.push("/new")}>
+						<Button variant={"elevated"} size={"icon"} onClick={() => router.push("/new")}>
 							<MaterialSymbol icon="add" size={20} />
 						</Button>
 					</h2>

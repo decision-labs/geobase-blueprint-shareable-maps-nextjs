@@ -1,8 +1,8 @@
 ## TODO:
 
+-   [ ] Filter pins in tileserver by project_id
 -   [ ] Update README.md
 -   [ ] Refactor useSupabase to useGeobase
--   [ ] Move keyboard shortcuts to map-view.tsx (use the map ref)
 -   [ ] Create an updated_at trigger
 -   [ ] Add React map tile code sample on studio tilserver page
 

@@ -5,10 +5,13 @@ import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { MaterialSymbol } from "react-material-symbols";
+import { RequestTransformFunction } from "maplibre-gl";
 
 export type SupabaseContextType = {
 	client: SupabaseClient;
 	auth: AuthSession | null;
+	session: ReturnType<typeof useRef<AuthSession | null>>;
+	baseUrl: string;
 };
 
 const GEOBASE_URL = process.env.NEXT_PUBLIC_GEOBASE_URL as string;
@@ -29,9 +32,7 @@ export function getMapTileURL(tileName: string, key: string = GEOBASE_ANON_KEY, 
 		...params,
 		apikey: key,
 	});
-	const url = `${GEOBASE_URL}/tileserver/v1/${tileName}/{z}/{x}/{y}.pbf?${searchParams}`;
-	console.log(url);
-	return url;
+	return `${GEOBASE_URL}/tileserver/v1/${tileName}/{z}/{x}/{y}.pbf?${searchParams}`;
 }
 
 export const useSupabase = () => {
@@ -42,7 +43,12 @@ export const useSupabase = () => {
 	return context;
 };
 
-export const SupabaseContext = createContext<SupabaseContextType>({ client: supabase, auth: null });
+export const SupabaseContext = createContext<SupabaseContextType>({
+	client: supabase,
+	auth: null,
+	baseUrl: GEOBASE_URL,
+	session: { current: null },
+});
 
 export function handleAuthRedirects(auth: AuthSession | null, router: ReturnType<typeof useRouter>) {
 	if (
@@ -67,6 +73,7 @@ export function SupabaseContextProvider({ children }: { children: React.ReactNod
 	const [auth, setAuth] = useState<AuthSession | null>(null);
 	const prevAuthRef = useRef<AuthSession | null>(null);
 	const prevPathnameRef = useRef<string | null>(null);
+	const sessionRef = useRef<AuthSession | null>(null);
 	const router = useRouter();
 	const pathname = usePathname();
 	const { toast } = useToast();
@@ -79,6 +86,7 @@ export function SupabaseContextProvider({ children }: { children: React.ReactNod
 				handleAuthRedirects(session, router);
 			}
 			setAuth(session);
+			sessionRef.current = session;
 		});
 
 		return () => {
@@ -113,5 +121,9 @@ export function SupabaseContextProvider({ children }: { children: React.ReactNod
 		prevAuthRef.current = auth;
 	}, [auth]);
 
-	return <SupabaseContext.Provider value={{ client: supabase, auth }}>{children}</SupabaseContext.Provider>;
+	return (
+		<SupabaseContext.Provider value={{ client: supabase, auth, session: sessionRef, baseUrl: GEOBASE_URL }}>
+			{children}
+		</SupabaseContext.Provider>
+	);
 }

@@ -26,7 +26,7 @@ export function MapMenu() {
 			<Dialog>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button variant={"ghost"} size={"icon"}>
+						<Button variant={"elevated"} size={"icon"}>
 							<MaterialSymbol icon="more_horiz" size={20} />
 						</Button>
 					</DropdownMenuTrigger>

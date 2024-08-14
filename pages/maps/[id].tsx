@@ -1,7 +1,7 @@
 import { MapProject, MapProjectContext, ProjectLayout } from "@/components/project-layout";
 import { useSupabase } from "@/components/supabase-provider";
 import { toast } from "@/components/ui/use-toast";
-import { MapView } from "@/components/views/map-view";
+import { MapController } from "@/components/views/map-controller";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 
@@ -75,7 +75,7 @@ export default function MapPage() {
 			}}
 		>
 			<ProjectLayout>
-				<MapView loadingMessage={loadingMessage} setLoadingMessage={setLoadingMessage} />
+				<MapController loadingMessage={loadingMessage} setLoadingMessage={setLoadingMessage} />
 			</ProjectLayout>
 		</MapProjectContext.Provider>
 	);
