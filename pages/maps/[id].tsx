@@ -1,11 +1,12 @@
 import { MapProject, MapProjectContext, ProjectLayout } from "@/components/project-layout";
 import { useSupabase } from "@/components/supabase-provider";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { MapController } from "@/components/views/map-controller";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 
 export default function MapPage() {
+	const { toast } = useToast();
 	const supabase = useSupabase();
 	const router = useRouter();
 	const [mapProject, setMapProject] = useState<MapProject | undefined>();
@@ -24,11 +25,12 @@ export default function MapPage() {
 			return;
 		}
 
-		console.log("Project updated:", data);
+		console.log("Project updated");
 	};
 
-	const fetchMapProject = async () => {
-		let { data, error } = await supabase.client.from("smb_map_projects").select("*").eq("uuid", router.query.id);
+	const fetchMapProject = async (uuid: string) => {
+		isLoading.current = true;
+		let { data, error } = await supabase.client.from("smb_map_projects").select("*").eq("uuid", uuid);
 
 		if (error) {
 			console.error(error);
@@ -45,9 +47,17 @@ export default function MapPage() {
 	};
 
 	useEffect(() => {
-		if (router.query.id && !mapProject) {
-			fetchMapProject().then((project) => {
+		const uuid = router.query.id as string | undefined;
+		if (!uuid) return;
+		if (uuid && !mapProject) {
+			fetchMapProject(uuid).then((project) => {
 				console.log("Project fetched:", project);
+				setMapProject(project);
+			});
+		} else {
+			setLoadingMessage("Getting map project data...");
+			fetchMapProject(uuid).then((project) => {
+				console.log("New project fetched:", project);
 				setMapProject(project);
 			});
 		}
@@ -64,6 +74,7 @@ export default function MapPage() {
 		if (!isFirstLoad && mapProject) {
 			console.log("changed", mapProject);
 			updateMapProject(mapProject);
+			setLoadingMessage("");
 		}
 	}, [mapProject]);
 

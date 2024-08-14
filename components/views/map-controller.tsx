@@ -21,13 +21,8 @@ import { GeoJSONFeatureCollection } from "@/lib/utils";
 import { Cursor } from "../ui/cursor";
 import { getMapTileURL, useSupabase } from "../supabase-provider";
 import { useMapProject } from "../project-layout";
-import { toast } from "../ui/use-toast";
+import { useToast } from "../ui/use-toast";
 import { RequestTransformFunction } from "maplibre-gl";
-
-const pinsSourceConfig: TileSourceConfig = {
-	id: "public.smb_pins",
-	tiles: [getMapTileURL("public.smb_pins")],
-};
 
 export type MapViewState = Partial<ViewState> & {
 	bounds?: LngLatBoundsLike;
@@ -62,6 +57,7 @@ export function useMapController() {
 export type TileSourceConfig = {
 	id: string;
 	tiles: string[];
+	params: Record<string, string>;
 };
 
 export function MapController({
@@ -71,6 +67,7 @@ export function MapController({
 	loadingMessage: string;
 	setLoadingMessage: (message: string) => void;
 }) {
+	const { toast } = useToast();
 	const supabase = useSupabase();
 	const theme = useTheme();
 	const mapRef = useRef<MapRef | null>(null);
@@ -81,6 +78,7 @@ export function MapController({
 	const [selectedTool, setSelectedTool] = useState<Tool>("hand");
 	const [isDrawing, setIsDrawing] = useState(false);
 	const [cursorIcon, setCursorIcon] = useState<string>("");
+	const drawingCoordArray = useRef<number[][]>([]);
 	const [activeDrawingGeoJson, setActiveDrawingGeoJson] = useState<GeoJSONFeatureCollection>({
 		type: "FeatureCollection",
 		features: [{ type: "Feature", geometry: { type: "LineString", coordinates: [] }, properties: {} }],
@@ -99,6 +97,30 @@ export function MapController({
 		},
 	});
 
+	const pinsSourceConfig: TileSourceConfig = {
+		id: "public.smb_pins",
+		tiles: [
+			getMapTileURL("public.smb_pins", {
+				filter: `project_id=${mapProject ? mapProject.id : -1}`,
+			}),
+		],
+		params: {
+			filter: `project_id=${mapProject ? mapProject.id : -1}`,
+		},
+	};
+
+	const drawingsSourceConfig: TileSourceConfig = {
+		id: "public.smb_drawings",
+		tiles: [
+			getMapTileURL("public.smb_drawings", {
+				filter: `project_id=${mapProject ? mapProject.id : -1}`,
+			}),
+		],
+		params: {
+			filter: `project_id=${mapProject ? mapProject.id : -1}`,
+		},
+	};
+
 	// Center of Europe
 	const initialViewState: MapViewState = {
 		latitude: 50.0,
@@ -112,7 +134,8 @@ export function MapController({
 	}, [selectedTool]);
 
 	useEffect(() => {
-		updateTiles(pinsSourceConfig.id);
+		updateTiles(pinsSourceConfig);
+		updateTiles(drawingsSourceConfig);
 	}, [mapProject]);
 
 	useEffect(() => {
@@ -167,6 +190,10 @@ export function MapController({
 		};
 	}, []);
 
+	useEffect(() => {
+		drawingCoordArray.current = activeDrawingGeoJson.features[0].geometry.coordinates as [number, number][];
+	}, [activeDrawingGeoJson]);
+
 	const mapMove = (event: ViewStateChangeEvent) => {
 		setCurrentViewState(event.viewState);
 	};
@@ -209,19 +236,19 @@ export function MapController({
 					description: <span className="text-red-500">Failed to insert pin</span>,
 				});
 			} else {
-				updateTiles(pinsSourceConfig.id);
+				updateTiles(pinsSourceConfig);
 			}
 		}
 	};
 
-	const updateTiles = (tileId: string) => {
+	const updateTiles = (sourceConfig: TileSourceConfig) => {
 		if (!mapRef.current) return;
 
 		const mapClient = mapRef.current.getMap();
-		const source = mapClient.getSource(tileId);
+		const source = mapClient.getSource(sourceConfig.id);
 		if (source) {
 			// @ts-ignore
-			source.setTiles([getMapTileURL(tileId)]);
+			source.setTiles([getMapTileURL(sourceConfig.id, sourceConfig.params)]);
 		}
 	};
 
@@ -246,9 +273,41 @@ export function MapController({
 		}
 	};
 
-	const mapMouseUp = (e: MouseEvent) => {
+	const mapMouseUp = async (e: MouseEvent) => {
 		setIsDrawing(false);
+		setActiveDrawingGeoJson({
+			type: "FeatureCollection",
+			features: [
+				{
+					type: "Feature",
+					geometry: {
+						type: "LineString",
+						coordinates: [],
+					},
+					properties: {},
+				},
+			],
+		});
 		window.removeEventListener("mouseup", mapMouseUp);
+
+		if (!mapProject || !supabase.session.current) return;
+		const { data, error } = await supabase.client.from("smb_drawings").insert([
+			{
+				shape: `LINESTRING(${drawingCoordArray.current.map((coord) => coord.join(" ")).join(",")})`,
+				meta: {},
+				project_id: mapProject.id,
+				profile_id: supabase.session.current.user.id,
+			},
+		]);
+
+		if (error) {
+			console.error("Error inserting drawing", error);
+			toast({
+				description: <span className="text-red-500">Failed to send drawing</span>,
+			});
+		} else {
+			updateTiles(drawingsSourceConfig);
+		}
 	};
 
 	const mapMouseDown = (e: MapLayerMouseEvent) => {
@@ -336,11 +395,26 @@ export function MapController({
 					<Source id="active-drawing-source" type="geojson" data={activeDrawingGeoJson}>
 						<Layer {...activeDrawingLayer} />
 					</Source>
+					<Source type="vector" {...drawingsSourceConfig}>
+						<Layer
+							id="drawings-layer"
+							type="line"
+							source-layer={drawingsSourceConfig.id}
+							layout={{
+								"line-cap": "round",
+								"line-join": "round",
+							}}
+							paint={{
+								"line-color": "#ff0000",
+								"line-width": 3,
+							}}
+						/>
+					</Source>
 					<Source type="vector" {...pinsSourceConfig}>
 						<Layer
 							id="pins-layer"
 							type="circle"
-							source-layer="public.smb_pins"
+							source-layer={pinsSourceConfig.id}
 							paint={{ "circle-radius": 5, "circle-color": "#ff000050" }}
 						/>
 					</Source>

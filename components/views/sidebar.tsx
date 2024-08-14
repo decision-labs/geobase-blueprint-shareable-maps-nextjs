@@ -5,8 +5,11 @@ import { MaterialSymbol } from "react-material-symbols";
 import { Button } from "../ui/button";
 import { MapMenu } from "./map-menu";
 import { ScrollArea } from "../ui/scroll-area";
-import { useMapProject } from "../project-layout";
+import { MapProject, useMapProject } from "../project-layout";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useSupabase } from "../supabase-provider";
+import { useToast } from "../ui/use-toast";
 
 export function Sidebar({
 	showSidebar,
@@ -15,8 +18,39 @@ export function Sidebar({
 	showSidebar: boolean;
 	setShowSidebar: (showSidebar: boolean) => void;
 }) {
+	const { toast } = useToast();
 	const router = useRouter();
+	const supabase = useSupabase();
 	const { mapProject } = useMapProject();
+	const [userProjects, setUserProjects] = useState<MapProject[]>([]);
+
+	const fetchUserProjects = async () => {
+		if (!supabase.session.current) return;
+		let { data, error } = await supabase.client
+			.from("smb_map_projects")
+			.select("*")
+			.eq("profile_id", supabase.session.current.user.id);
+
+		if (error) {
+			console.error("Error fetching user projects", error);
+			toast({
+				description: <span className="text-red-500">Could not fetch projects</span>,
+			});
+			return;
+		}
+
+		if (data && mapProject) {
+			let projects = data as MapProject[];
+			// Order alphabetically
+			projects = projects.sort((a, b) => a.title.localeCompare(b.title));
+			setUserProjects(projects);
+		}
+	};
+
+	useEffect(() => {
+		fetchUserProjects();
+	}, [mapProject]);
+
 	return (
 		<aside
 			className={cn(
@@ -51,27 +85,21 @@ export function Sidebar({
 					</h2>
 					<ScrollArea>
 						<div className="flex flex-col gap-1">
-							<Link
-								href="/"
-								className="rounded-lg bg-white/50 dark:bg-zinc-600/20 hover:bg-white/80 dark:hover:bg-zinc-700/50 border border-transparent dark:border-zinc-700/50 transition p-2 flex items-center justify-between"
-							>
-								GDL 🎻
-								<MaterialSymbol icon="chevron_right" />
-							</Link>
-							<Link
-								href="/"
-								className="rounded-lg bg-white/50 dark:bg-zinc-600/20 hover:bg-white/80 dark:hover:bg-zinc-700/50 border border-transparent dark:border-zinc-700/50 transition p-2 flex items-center justify-between"
-							>
-								Berlin 🍺
-								<MaterialSymbol icon="chevron_right" />
-							</Link>
-							<Link
-								href="/"
-								className="rounded-lg bg-white/50 dark:bg-zinc-600/20 hover:bg-white/80 dark:hover:bg-zinc-700/50 border border-transparent dark:border-zinc-700/50 transition p-2 flex items-center justify-between"
-							>
-								CDMX 🌮
-								<MaterialSymbol icon="chevron_right" />
-							</Link>
+							{userProjects.map((project) => (
+								<Link
+									key={project.id}
+									href={`/maps/${project.uuid}`}
+									className={cn(
+										"rounded-lg border border-transparent dark:border-zinc-600/50 transition p-2 flex items-center justify-between",
+										mapProject && project.id === mapProject.id
+											? "bg-white/80 dark:bg-zinc-500/50"
+											: "bg-white/50 dark:bg-zinc-500/20 hover:bg-white/80 dark:hover:bg-zinc-500/40",
+									)}
+								>
+									{mapProject && project.id === mapProject.id ? mapProject.title : project.title}
+									<MaterialSymbol icon="chevron_right" />
+								</Link>
+							))}
 						</div>
 					</ScrollArea>
 				</ResizablePanel>

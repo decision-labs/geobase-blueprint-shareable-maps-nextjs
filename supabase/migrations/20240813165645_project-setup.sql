@@ -159,3 +159,96 @@ create policy "Allow published map attachments read access" on public.smb_attach
 -- Authed, only the attachment's owner can update, read, or delete
 create policy "Allow attachment owner general access" on public.smb_attachments
   for all using ((select auth.uid()) = profile_id);
+
+
+--
+-- Project Bounds Trigger
+--
+
+-- Function to update project bounds
+CREATE OR REPLACE FUNCTION public.update_project_bounds()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = extensions, public
+AS $$
+DECLARE
+    affected_project_id INTEGER;
+    new_bounds JSONB;
+BEGIN
+    -- Determine the affected_project_id based on the table being updated
+    IF TG_OP = 'INSERT' THEN
+        affected_project_id := NEW.project_id;
+    ELSIF TG_OP = 'DELETE' THEN
+        affected_project_id := OLD.project_id;
+    ELSE
+        RAISE EXCEPTION 'Unexpected operation: %', TG_OP;
+    END IF;
+
+    -- Calculate new bounds
+    WITH project_shapes AS (
+        SELECT
+            mp.id AS project_id,
+            ST_Collect(ARRAY[
+                ST_Collect(d.shape),
+                ST_Collect(p.shape),
+                ST_Collect(an.shape),
+                ST_Collect(at.shape)
+            ]) AS combined_shape
+        FROM
+            public.smb_map_projects mp
+        LEFT JOIN
+            public.smb_drawings d ON mp.id = d.project_id
+        LEFT JOIN
+            public.smb_pins p ON mp.id = p.project_id
+        LEFT JOIN
+            public.smb_annotations an ON mp.id = an.project_id
+        LEFT JOIN
+            public.smb_attachments at ON mp.id = at.project_id
+        WHERE mp.id = affected_project_id
+        GROUP BY
+            mp.id
+    )
+    SELECT
+        CASE
+            WHEN ST_IsEmpty(combined_shape) OR combined_shape IS NULL THEN
+                NULL
+            ELSE
+                json_build_object(
+                    'north', ST_YMax(ST_Envelope(combined_shape)),
+                    'east', ST_XMax(ST_Envelope(combined_shape)),
+                    'south', ST_YMin(ST_Envelope(combined_shape)),
+                    'west', ST_XMin(ST_Envelope(combined_shape))
+                )
+        END INTO new_bounds
+    FROM
+        project_shapes;
+
+    -- Update the bounds column in the projects table
+    UPDATE public.smb_map_projects
+    SET bounds = new_bounds
+    WHERE id = affected_project_id;
+
+    IF TG_OP = 'INSERT' THEN
+        RETURN NEW;
+    ELSE
+        RETURN OLD;
+    END IF;
+END;
+$$;
+
+-- Create triggers for each annotation table
+CREATE TRIGGER update_bounds_on_drawing_change
+AFTER INSERT OR DELETE ON public.smb_drawings
+FOR EACH ROW EXECUTE FUNCTION public.update_project_bounds();
+
+CREATE TRIGGER update_bounds_on_pin_change
+AFTER INSERT OR DELETE ON public.smb_pins
+FOR EACH ROW EXECUTE FUNCTION public.update_project_bounds();
+
+CREATE TRIGGER update_bounds_on_annotation_change
+AFTER INSERT OR DELETE ON public.smb_annotations
+FOR EACH ROW EXECUTE FUNCTION public.update_project_bounds();
+
+CREATE TRIGGER update_bounds_on_attachment_change
+AFTER INSERT OR DELETE ON public.smb_attachments
+FOR EACH ROW EXECUTE FUNCTION public.update_project_bounds();

@@ -27,10 +27,10 @@ if (!GEOBASE_ANON_KEY) {
 
 const supabase = createClient(GEOBASE_URL, GEOBASE_ANON_KEY);
 
-export function getMapTileURL(tileName: string, key: string = GEOBASE_ANON_KEY, params: Record<string, string> = {}) {
+export function getMapTileURL(tileName: string, params: Record<string, string> = {}) {
 	const searchParams = new URLSearchParams({
+		apikey: GEOBASE_ANON_KEY,
 		...params,
-		apikey: key,
 	});
 	return `${GEOBASE_URL}/tileserver/v1/${tileName}/{z}/{x}/{y}.pbf?${searchParams}`;
 }

@@ -1,6 +1,5 @@
 ## TODO:
 
--   [ ] Filter pins in tileserver by project_id
 -   [ ] Update README.md
 -   [ ] Refactor useSupabase to useGeobase
 -   [ ] Create an updated_at trigger
