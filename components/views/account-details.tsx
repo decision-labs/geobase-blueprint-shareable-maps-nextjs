@@ -3,6 +3,8 @@ import { Button } from "../ui/button";
 import { MaterialSymbol } from "react-material-symbols";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { useSupabase } from "../supabase-provider";
+import { useEffect, useState } from "react";
+import { MapProject } from "../project-layout";
 
 export function AccountDetails({
 	showAccountDetails,
@@ -12,6 +14,31 @@ export function AccountDetails({
 	setShowAccountDetails: (show: boolean) => void;
 }) {
 	const supabase = useSupabase();
+	const [mapCount, setMapCount] = useState(0);
+
+	const fetchMapCount = async () => {
+		if (!supabase.session.current) return;
+		let { data, error } = await supabase.client
+			.from("smb_map_projects")
+			.select("id")
+			.eq("profile_id", supabase.session.current.user.id);
+
+		if (error) {
+			console.error("Error fetching user projects", error);
+			return;
+		}
+
+		if (data) {
+			let projects = data as MapProject[];
+			setMapCount(projects.length);
+		}
+	};
+
+	useEffect(() => {
+		if (showAccountDetails) {
+			fetchMapCount();
+		}
+	}, [showAccountDetails]);
 
 	return (
 		<aside
@@ -39,7 +66,7 @@ export function AccountDetails({
 				</Avatar>
 			</button>
 			<h2 className="text-lg mt-2">{supabase.auth?.user.email}</h2>
-			<p className="text-sm opacity-60">20 Maps Created</p>
+			<p className="text-sm opacity-60">{mapCount} Maps Created</p>
 		</aside>
 	);
 }

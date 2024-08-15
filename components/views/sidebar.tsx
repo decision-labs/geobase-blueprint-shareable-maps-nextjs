@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSupabase } from "../supabase-provider";
 import { useToast } from "../ui/use-toast";
+import { CreateMapDialog } from "./create-map-dialog";
 
 export function Sidebar({
 	showSidebar,
@@ -26,6 +27,7 @@ export function Sidebar({
 
 	const fetchUserProjects = async () => {
 		if (!supabase.session.current) return;
+		console.log("Fetching user projects");
 		let { data, error } = await supabase.client
 			.from("smb_map_projects")
 			.select("*")
@@ -39,17 +41,16 @@ export function Sidebar({
 			return;
 		}
 
-		if (data && mapProject) {
+		if (data) {
 			let projects = data as MapProject[];
-			// Order alphabetically
 			projects = projects.sort((a, b) => a.title.localeCompare(b.title));
 			setUserProjects(projects);
 		}
 	};
 
 	useEffect(() => {
-		fetchUserProjects();
-	}, [mapProject]);
+		if (showSidebar) fetchUserProjects();
+	}, [showSidebar]);
 
 	return (
 		<aside
@@ -59,48 +60,67 @@ export function Sidebar({
 			)}
 		>
 			<ResizablePanelGroup direction="vertical">
-				<ResizablePanel className="p-3 flex flex-col gap-2">
-					<h2 className="pb-2 flex items-center gap-4 justify-between text-sm font-semibold">
-						{mapProject?.title}
-						<MapMenu />
-					</h2>
-					<ScrollArea>
-						<div className="flex flex-col gap-2">
-							<button className="focus:outline-none flex items-center justify-between">
-								📍 Alexanderplatz
-							</button>
-							<button className="focus:outline-none flex items-center justify-between">
-								📍 Brandenburger Tor
-							</button>
-						</div>
-					</ScrollArea>
-				</ResizablePanel>
-				<ResizableHandle withHandle />
-				<ResizablePanel className="p-3 flex flex-col gap-1">
+				{mapProject ? (
+					<>
+						<ResizablePanel
+							order={1}
+							key="map-items"
+							id="map-items-panel"
+							className="p-3 flex flex-col gap-2"
+						>
+							<h2 className="pb-2 flex items-center gap-4 justify-between text-sm font-semibold">
+								{mapProject?.title}
+								<MapMenu project={{ ...mapProject }} />
+							</h2>
+							<ScrollArea>
+								<div className="flex flex-col gap-2">
+									<button className="focus:outline-none flex items-center justify-between">
+										📍 Alexanderplatz
+									</button>
+									<button className="focus:outline-none flex items-center justify-between">
+										📍 Brandenburger Tor
+									</button>
+								</div>
+							</ScrollArea>
+						</ResizablePanel>
+						<ResizableHandle withHandle />
+					</>
+				) : null}
+				<ResizablePanel order={2} key="map-list" id="map-list-panel" className="p-3 flex flex-col gap-1">
 					<h2 className="pb-2 flex items-center gap-4 justify-between text-sm font-semibold">
 						My Maps
-						<Button variant={"elevated"} size={"icon"} onClick={() => router.push("/new")}>
-							<MaterialSymbol icon="add" size={20} />
-						</Button>
+						<CreateMapDialog variant="icon" />
 					</h2>
 					<ScrollArea>
-						<div className="flex flex-col gap-1">
-							{userProjects.map((project) => (
-								<Link
-									key={project.id}
-									href={`/maps/${project.uuid}`}
-									className={cn(
-										"rounded-lg border border-transparent dark:border-zinc-600/50 transition p-2 flex items-center justify-between",
-										mapProject && project.id === mapProject.id
-											? "bg-white/80 dark:bg-zinc-500/50"
-											: "bg-white/50 dark:bg-zinc-500/20 hover:bg-white/80 dark:hover:bg-zinc-500/40",
-									)}
-								>
-									{mapProject && project.id === mapProject.id ? mapProject.title : project.title}
-									<MaterialSymbol icon="chevron_right" />
-								</Link>
-							))}
-						</div>
+						{userProjects.length > 0 ? (
+							<div className="flex flex-col gap-1">
+								{userProjects.map((project) => (
+									<div key={project.id} className="relative">
+										<Link
+											href={`/maps/${project.uuid}`}
+											className={cn(
+												"rounded-lg border border-transparent dark:border-zinc-600/50 transition p-2 flex items-center gap-3 w-full",
+												mapProject && project.id === mapProject.id
+													? "bg-white/80 dark:bg-zinc-500/50"
+													: "bg-white/50 dark:bg-zinc-500/20 hover:bg-white/80 dark:hover:bg-zinc-500/40",
+											)}
+										>
+											{mapProject && project.id === mapProject.id ? (
+												mapProject.title
+											) : (
+												<>{project.title}</>
+											)}
+										</Link>
+										<MapMenu
+											project={{ ...project }}
+											className="absolute right-1 -mr-px top-1/2 -translate-y-1/2"
+										/>
+									</div>
+								))}
+							</div>
+						) : (
+							<div className="text-sm opacity-50 w-full text-center">No maps yet</div>
+						)}
 					</ScrollArea>
 				</ResizablePanel>
 			</ResizablePanelGroup>

@@ -19,7 +19,6 @@ export function Cursor({ children }: { children: React.ReactNode }) {
 			className="pointer-events-none fixed left-0 top-0 transform-gpu"
 			style={{
 				transform: `translate(${cursor.x}px, ${cursor.y}px)`,
-				zIndex: 9999,
 			}}
 		>
 			{children}

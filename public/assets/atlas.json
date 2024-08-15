@@ -1,0 +1,26 @@
+{
+	"pin": {
+		"x": 0,
+		"y": 0,
+		"width": 128,
+		"height": 128,
+		"anchorY": 128,
+		"mask": false
+	},
+	"attachment": {
+		"x": 128,
+		"y": 0,
+		"width": 128,
+		"height": 128,
+		"anchorY": 128,
+		"mask": false
+	},
+	"annotation": {
+		"x": 256,
+		"y": 0,
+		"width": 128,
+		"height": 128,
+		"anchorY": 128,
+		"mask": false
+	}
+}

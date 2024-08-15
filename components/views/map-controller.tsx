@@ -17,12 +17,12 @@ import { MapUI } from "./map-ui";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Spinner } from "../ui/spinner";
 import { Tool } from "./toolbar";
-import { GeoJSONFeatureCollection } from "@/lib/utils";
+import { cn, GeoJSONFeatureCollection } from "@/lib/utils";
 import { Cursor } from "../ui/cursor";
 import { getMapTileURL, useSupabase } from "../supabase-provider";
 import { useMapProject } from "../project-layout";
 import { useToast } from "../ui/use-toast";
-import { RequestTransformFunction } from "maplibre-gl";
+import { LngLat, LngLatBounds, MapLibreEvent, RequestTransformFunction } from "maplibre-gl";
 
 export type MapViewState = Partial<ViewState> & {
 	bounds?: LngLatBoundsLike;
@@ -61,9 +61,11 @@ export type TileSourceConfig = {
 };
 
 export function MapController({
+	isFirstLoad = false,
 	loadingMessage,
 	setLoadingMessage,
 }: {
+	isFirstLoad?: boolean;
 	loadingMessage: string;
 	setLoadingMessage: (message: string) => void;
 }) {
@@ -73,12 +75,20 @@ export function MapController({
 	const mapRef = useRef<MapRef | null>(null);
 	const { mapProject, setMapProject } = useMapProject();
 	const [currentViewState, setCurrentViewState] = useState<ViewState | null>(null);
+	const [isMouseDown, setIsMouseDown] = useState(false);
 	const [cursor, setCursor] = useState<string | undefined>(undefined);
 	const lastCursor = useRef<string | undefined>(undefined);
 	const [selectedTool, setSelectedTool] = useState<Tool>("hand");
 	const [isDrawing, setIsDrawing] = useState(false);
-	const [cursorIcon, setCursorIcon] = useState<string>("");
+	const [cursorIcon, setCursorIcon] = useState<React.ReactNode>(null);
 	const drawingCoordArray = useRef<number[][]>([]);
+	const canUseTools = useRef(true);
+	const [initialViewState, setInitialViewState] = useState<MapViewState>({
+		latitude: 50.0,
+		longitude: 15.0,
+		zoom: 1.5,
+	});
+
 	const [activeDrawingGeoJson, setActiveDrawingGeoJson] = useState<GeoJSONFeatureCollection>({
 		type: "FeatureCollection",
 		features: [{ type: "Feature", geometry: { type: "LineString", coordinates: [] }, properties: {} }],
@@ -121,19 +131,47 @@ export function MapController({
 		},
 	};
 
-	// Center of Europe
-	const initialViewState: MapViewState = {
-		latitude: 50.0,
-		longitude: 15.0,
-		zoom: 1.5,
-	};
-
 	useEffect(() => {
 		const icon = tools.find((tool) => tool.tool === selectedTool)?.icon || "";
-		setCursorIcon(selectedTool === "hand" ? "" : icon);
+		switch (selectedTool) {
+			case "hand":
+				setCursor(undefined);
+				setCursorIcon(null);
+				break;
+			case "draw":
+				setCursor("crosshair");
+				setCursorIcon(
+					<div className="w-8 h-8 text-4xl translate-x-[8px] -translate-y-[44px] -scale-x-100">{icon}</div>,
+				);
+				break;
+			case "pin":
+				setCursor("crosshair");
+				setCursorIcon(<div className="w-8 h-8 text-4xl -translate-x-[18.5px] -translate-y-[44px]">{icon}</div>);
+				break;
+			case "sign":
+				setCursor("copy");
+				setCursorIcon(<div className="w-8 h-8 text-4xl -translate-y-12">{icon}</div>);
+				break;
+			case "attachment":
+				setCursor("copy");
+				setCursorIcon(
+					<div className="w-8 h-8 text-4xl rotate-[60deg] translate-x-[10%] -translate-y-[150%]">{icon}</div>,
+				);
+				break;
+		}
 	}, [selectedTool]);
 
 	useEffect(() => {
+		if (!mapProject) {
+			canUseTools.current = false;
+			return;
+		}
+
+		canUseTools.current = true;
+
+		if (isFirstLoad) {
+			recenter();
+		}
 		updateTiles(pinsSourceConfig);
 		updateTiles(drawingsSourceConfig);
 	}, [mapProject]);
@@ -142,24 +180,21 @@ export function MapController({
 		if (!mapRef.current) return;
 
 		if (selectedTool === "hand") {
-			setCursor(undefined);
 			mapRef.current.getMap().dragPan.enable();
 		} else if (selectedTool === "draw") {
-			setCursor("crosshair");
 			mapRef.current.getMap().dragPan.disable();
 		} else if (selectedTool === "pin") {
-			setCursor("crosshair");
 			mapRef.current.getMap().dragPan.enable();
 		} else if (selectedTool === "sign") {
-			setCursor("crosshair");
 			mapRef.current.getMap().dragPan.enable();
 		} else if (selectedTool === "attachment") {
-			setCursor("crosshair");
 			mapRef.current.getMap().dragPan.enable();
 		}
 	}, [selectedTool]);
 
 	const handleKeydown = (e: KeyboardEvent) => {
+		if (!canUseTools.current) return;
+
 		const activeElement = document.activeElement as HTMLElement | null;
 		if (activeElement) {
 			const isInputFocused = activeElement.tagName === "INPUT" || activeElement.tagName === "TEXTAREA";
@@ -194,6 +229,17 @@ export function MapController({
 		drawingCoordArray.current = activeDrawingGeoJson.features[0].geometry.coordinates as [number, number][];
 	}, [activeDrawingGeoJson]);
 
+	const mapLoad = async () => {
+		if (!mapRef.current) return;
+		const m = mapRef.current.getMap();
+		const pin = await m.loadImage("/assets/pin.png");
+		const attachment = await m.loadImage("/assets/attachment.png");
+		const annotation = await m.loadImage("/assets/annotation.png");
+		m.addImage("pin", pin.data);
+		m.addImage("attachment", attachment.data);
+		m.addImage("annotation", annotation.data);
+	};
+
 	const mapMove = (event: ViewStateChangeEvent) => {
 		setCurrentViewState(event.viewState);
 	};
@@ -212,15 +258,15 @@ export function MapController({
 	};
 
 	const mapClick = async (e: MapLayerMouseEvent) => {
-		if (!supabase.auth || !mapProject || !mapProject.id) {
-			console.error("Either not authenticated or no project selected");
-			toast({
-				description: <span className="text-red-500">Failed to insert pin</span>,
-			});
-			return;
-		}
-
 		if (selectedTool === "pin") {
+			if (!supabase.auth || !mapProject || !mapProject.id) {
+				console.error("Either not authenticated or no project selected");
+				toast({
+					description: <span className="text-red-500">Failed to insert pin</span>,
+				});
+				return;
+			}
+
 			const { data, error } = await supabase.client.from("smb_pins").insert([
 				{
 					shape: `POINT(${e.lngLat.lng} ${e.lngLat.lat})`,
@@ -242,7 +288,7 @@ export function MapController({
 	};
 
 	const updateTiles = (sourceConfig: TileSourceConfig) => {
-		if (!mapRef.current) return;
+		if (!mapRef.current || !mapProject) return;
 
 		const mapClient = mapRef.current.getMap();
 		const source = mapClient.getSource(sourceConfig.id);
@@ -291,6 +337,7 @@ export function MapController({
 		window.removeEventListener("mouseup", mapMouseUp);
 
 		if (!mapProject || !supabase.session.current) return;
+
 		const { data, error } = await supabase.client.from("smb_drawings").insert([
 			{
 				shape: `LINESTRING(${drawingCoordArray.current.map((coord) => coord.join(" ")).join(",")})`,
@@ -311,6 +358,7 @@ export function MapController({
 	};
 
 	const mapMouseDown = (e: MapLayerMouseEvent) => {
+		setIsMouseDown(true);
 		if (selectedTool === "draw") {
 			setIsDrawing(true);
 			setActiveDrawingGeoJson({
@@ -345,16 +393,28 @@ export function MapController({
 
 	const recenter = () => {
 		if (!mapRef.current) return;
-		if (!initialViewState.latitude || !initialViewState.longitude) return;
 
-		mapRef.current.flyTo({
-			center: {
-				lat: initialViewState.latitude,
-				lng: initialViewState.longitude,
-			},
-			zoom: initialViewState.zoom,
-			duration: 1000,
-		});
+		if (mapProject && mapProject.bounds) {
+			mapRef.current.fitBounds(
+				new LngLatBounds(
+					new LngLat(mapProject.bounds.west, mapProject.bounds.south),
+					new LngLat(mapProject.bounds.east, mapProject.bounds.north),
+				),
+				{
+					padding: 100,
+					duration: 1000,
+				},
+			);
+		} else if (initialViewState.latitude && initialViewState.longitude) {
+			mapRef.current.flyTo({
+				center: {
+					lat: initialViewState.latitude,
+					lng: initialViewState.longitude,
+				},
+				zoom: initialViewState.zoom,
+				duration: 1000,
+			});
+		}
 	};
 
 	return (
@@ -364,6 +424,8 @@ export function MapController({
 				attributionControl={false}
 				mapStyle={theme.resolvedTheme === "dark" ? neighborhoodStyles.dark : neighborhoodStyles.light}
 				initialViewState={initialViewState}
+				onLoad={mapLoad}
+				onMouseUp={() => setIsMouseDown(false)}
 				onMouseDown={mapMouseDown}
 				onMouseMove={mapMouseMove}
 				onMove={mapMove}
@@ -413,9 +475,14 @@ export function MapController({
 					<Source type="vector" {...pinsSourceConfig}>
 						<Layer
 							id="pins-layer"
-							type="circle"
+							type="symbol"
 							source-layer={pinsSourceConfig.id}
-							paint={{ "circle-radius": 5, "circle-color": "#ff000050" }}
+							layout={{
+								"icon-image": "pin",
+								"icon-anchor": "bottom",
+								"icon-size": 0.3,
+								"icon-allow-overlap": true,
+							}}
 						/>
 					</Source>
 					<MapUI />
@@ -428,7 +495,7 @@ export function MapController({
 				</MapControllerContext.Provider>
 			</Map>
 			<Cursor>
-				<div className="w-8 h-8 text-2xl -translate-x-1/2 -translate-y-full -mt-4">{cursorIcon}</div>
+				<div className={cn(isMouseDown ? "translate-y-1" : "")}>{cursorIcon}</div>
 			</Cursor>
 		</div>
 	);

@@ -30,7 +30,7 @@ export function AccountMenu({ setShowAccountDetails }: { setShowAccountDetails: 
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<button className="border border-zinc-200 bg-white shadow-sm hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-600/30 hover:opacity-80 dark:hover:text-zinc-50 rounded-full p-0.5">
+				<button className="shadow-sm hover:opacity-80 rounded-full">
 					<Avatar className="h-7 w-7">
 						<AvatarImage src={supabase.auth?.user.user_metadata.avatar_url} alt="Avatar" />
 						<AvatarFallback>

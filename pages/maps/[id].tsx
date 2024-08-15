@@ -59,6 +59,7 @@ export default function MapPage() {
 			fetchMapProject(uuid).then((project) => {
 				console.log("New project fetched:", project);
 				setMapProject(project);
+				setIsFirstLoad(true);
 			});
 		}
 	}, [router.query.id]);
@@ -73,6 +74,7 @@ export default function MapPage() {
 
 		if (!isFirstLoad && mapProject) {
 			console.log("changed", mapProject);
+			// @TODO: Don't update the remote project here. Instead only update a column at a time and get the new project with a real-time listener.
 			updateMapProject(mapProject);
 			setLoadingMessage("");
 		}
@@ -86,7 +88,11 @@ export default function MapPage() {
 			}}
 		>
 			<ProjectLayout>
-				<MapController loadingMessage={loadingMessage} setLoadingMessage={setLoadingMessage} />
+				<MapController
+					isFirstLoad={isFirstLoad}
+					loadingMessage={loadingMessage}
+					setLoadingMessage={setLoadingMessage}
+				/>
 			</ProjectLayout>
 		</MapProjectContext.Provider>
 	);
