@@ -2,6 +2,7 @@ import { neighborhoodStyles, tools } from "@/lib/consts";
 import { useTheme } from "next-themes";
 import Map, {
 	Layer,
+	LayerProps,
 	LineLayer,
 	LngLatBoundsLike,
 	MapLayerMouseEvent,
@@ -22,7 +23,7 @@ import { Cursor } from "../ui/cursor";
 import { getMapTileURL, useSupabase } from "../supabase-provider";
 import { useMapProject } from "../project-layout";
 import { useToast } from "../ui/use-toast";
-import { LngLat, LngLatBounds, MapLibreEvent, RequestTransformFunction } from "maplibre-gl";
+import { LineLayerSpecification, LngLat, LngLatBounds, MapLibreEvent, RequestTransformFunction } from "maplibre-gl";
 
 export type MapViewState = Partial<ViewState> & {
 	bounds?: LngLatBoundsLike;
@@ -93,19 +94,17 @@ export function MapController({
 		type: "FeatureCollection",
 		features: [{ type: "Feature", geometry: { type: "LineString", coordinates: [] }, properties: {} }],
 	});
-	const [activeDrawingLayer, setActiveDrawingLayer] = useState<LineLayer>({
-		id: "drawing",
-		type: "line",
-		source: "active-drawing-source",
+
+	const drawingStyles: Omit<LineLayerSpecification, "id" | "source" | "type"> = {
 		layout: {
 			"line-cap": "round",
 			"line-join": "round",
 		},
 		paint: {
 			"line-color": "#ff0000",
-			"line-width": 3,
+			"line-width": 2,
 		},
-	});
+	};
 
 	const pinsSourceConfig: TileSourceConfig = {
 		id: "public.smb_pins",
@@ -140,6 +139,7 @@ export function MapController({
 				break;
 			case "draw":
 				setCursor("crosshair");
+				// rotate-[140deg]
 				setCursorIcon(
 					<div className="w-8 h-8 text-4xl translate-x-[8px] -translate-y-[44px] -scale-x-100">{icon}</div>,
 				);
@@ -148,7 +148,7 @@ export function MapController({
 				setCursor("crosshair");
 				setCursorIcon(<div className="w-8 h-8 text-4xl -translate-x-[18.5px] -translate-y-[44px]">{icon}</div>);
 				break;
-			case "sign":
+			case "annotation":
 				setCursor("copy");
 				setCursorIcon(<div className="w-8 h-8 text-4xl -translate-y-12">{icon}</div>);
 				break;
@@ -185,7 +185,7 @@ export function MapController({
 			mapRef.current.getMap().dragPan.disable();
 		} else if (selectedTool === "pin") {
 			mapRef.current.getMap().dragPan.enable();
-		} else if (selectedTool === "sign") {
+		} else if (selectedTool === "annotation") {
 			mapRef.current.getMap().dragPan.enable();
 		} else if (selectedTool === "attachment") {
 			mapRef.current.getMap().dragPan.enable();
@@ -214,7 +214,7 @@ export function MapController({
 		if (e.key === "1") setSelectedTool("hand");
 		if (e.key === "2") setSelectedTool("draw");
 		if (e.key === "3") setSelectedTool("pin");
-		if (e.key === "4") setSelectedTool("sign");
+		if (e.key === "4") setSelectedTool("annotation");
 		if (e.key === "5") setSelectedTool("attachment");
 	};
 
@@ -284,6 +284,34 @@ export function MapController({
 			} else {
 				updateTiles(pinsSourceConfig);
 			}
+		} else if (selectedTool === "annotation") {
+			// @TODO: First, I need to create a local layer to draw the annotation and have the user edit the text. Then we push.
+			// if (!supabase.auth || !mapProject || !mapProject.id) {
+			// 	console.error("Either not authenticated or no project selected");
+			// 	toast({
+			// 		description: <span className="text-red-500">Failed to insert annotation</span>,
+			// 	});
+			// 	return;
+			// }
+			// const { data, error } = await supabase.client.from("smb_annotations").insert([
+			// 	{
+			// 		shape: `POINT(${e.lngLat.lng} ${e.lngLat.lat})`,
+			// 		meta: {},
+			// 		project_id: mapProject.id,
+			// 		profile_id: supabase.auth.user.id,
+			// 		metadata: {
+			// 			text: "New annotation",
+			// 		},
+			// 	},
+			// ]);
+			// if (error) {
+			// 	console.error("Error inserting annotation", error);
+			// 	toast({
+			// 		description: <span className="text-red-500">Failed to insert annotation</span>,
+			// 	});
+			// } else {
+			// 	// updateTiles(annotationSourceConfig);
+			// }
 		}
 	};
 
@@ -455,21 +483,21 @@ export function MapController({
 					}}
 				>
 					<Source id="active-drawing-source" type="geojson" data={activeDrawingGeoJson}>
-						<Layer {...activeDrawingLayer} />
+						<Layer
+							{...{
+								id: "drawing",
+								type: "line",
+								source: "active-drawing-source",
+								...drawingStyles,
+							}}
+						/>
 					</Source>
 					<Source type="vector" {...drawingsSourceConfig}>
 						<Layer
 							id="drawings-layer"
 							type="line"
 							source-layer={drawingsSourceConfig.id}
-							layout={{
-								"line-cap": "round",
-								"line-join": "round",
-							}}
-							paint={{
-								"line-color": "#ff0000",
-								"line-width": 3,
-							}}
+							{...drawingStyles}
 						/>
 					</Source>
 					<Source type="vector" {...pinsSourceConfig}>

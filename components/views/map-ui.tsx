@@ -103,7 +103,7 @@ export function MapUI() {
 						</div>
 					</div>
 				) : (
-					<CreateMapDialog />
+					<CreateMapDialog setShowSidebar={setShowSidebar} showSidebar={showSidebar} />
 				)}
 				<AccountMenu setShowAccountDetails={setShowAccountDetails} />
 				{mapProject ? (

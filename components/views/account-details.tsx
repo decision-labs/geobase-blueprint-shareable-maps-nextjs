@@ -57,15 +57,16 @@ export function AccountDetails({
 			>
 				<MaterialSymbol icon="close" size={20} />
 			</Button>
-			<button className="border border-zinc-200 bg-white shadow-sm hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-600/30 dark:hover:bg-zinc-800 dark:hover:text-zinc-50 rounded-full p-0.5 w-fit">
+			<button className="rounded-full w-fit hover:opacity-80">
 				<Avatar className="h-32 w-32">
-					<AvatarImage src={supabase.auth?.user.user_metadata.avatar_url} alt="Avatar" />
+					<AvatarImage src={supabase.profile?.photo_url} alt="Avatar" />
 					<AvatarFallback>
 						<MaterialSymbol icon="person" size={96} fill className="opacity-20" />
 					</AvatarFallback>
 				</Avatar>
 			</button>
-			<h2 className="text-lg mt-2">{supabase.auth?.user.email}</h2>
+			<h2 className="text-lg mt-2">{supabase.profile?.nickname}</h2>
+			<p className="text-sm opacity-60">{supabase.auth?.user.email}</p>
 			<p className="text-sm opacity-60">{mapCount} Maps Created</p>
 		</aside>
 	);

@@ -32,7 +32,7 @@ export function AccountMenu({ setShowAccountDetails }: { setShowAccountDetails: 
 			<DropdownMenuTrigger asChild>
 				<button className="shadow-sm hover:opacity-80 rounded-full">
 					<Avatar className="h-7 w-7">
-						<AvatarImage src={supabase.auth?.user.user_metadata.avatar_url} alt="Avatar" />
+						<AvatarImage src={supabase.profile?.photo_url} alt="Avatar" />
 						<AvatarFallback>
 							<MaterialSymbol icon="person" size={20} fill className="opacity-50" />
 						</AvatarFallback>

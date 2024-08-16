@@ -24,6 +24,7 @@ export function Sidebar({
 	const supabase = useSupabase();
 	const { mapProject } = useMapProject();
 	const [userProjects, setUserProjects] = useState<MapProject[]>([]);
+	const [mapItems, setMapItems] = useState<any[]>([]);
 
 	const fetchUserProjects = async () => {
 		if (!supabase.session.current) return;
@@ -73,14 +74,22 @@ export function Sidebar({
 								<MapMenu project={{ ...mapProject }} />
 							</h2>
 							<ScrollArea>
-								<div className="flex flex-col gap-2">
-									<button className="focus:outline-none flex items-center justify-between">
-										📍 Alexanderplatz
-									</button>
-									<button className="focus:outline-none flex items-center justify-between">
-										📍 Brandenburger Tor
-									</button>
-								</div>
+								{mapItems.length > 0 ? (
+									<div className="flex flex-col gap-2">
+										{mapItems.map((item, i) => (
+											<button
+												key={i}
+												className="focus:outline-none flex items-center justify-between"
+											>
+												📍 Pin {i}
+											</button>
+										))}
+									</div>
+								) : (
+									<div className="text-sm opacity-50 w-full text-center">
+										Nothing placed on your map yet.
+									</div>
+								)}
 							</ScrollArea>
 						</ResizablePanel>
 						<ResizableHandle withHandle />
@@ -89,7 +98,7 @@ export function Sidebar({
 				<ResizablePanel order={2} key="map-list" id="map-list-panel" className="p-3 flex flex-col gap-1">
 					<h2 className="pb-2 flex items-center gap-4 justify-between text-sm font-semibold">
 						My Maps
-						<CreateMapDialog variant="icon" />
+						<CreateMapDialog variant="icon" setShowSidebar={setShowSidebar} showSidebar={showSidebar} />
 					</h2>
 					<ScrollArea>
 						{userProjects.length > 0 ? (

@@ -12,6 +12,10 @@ create table public.profiles (
 
 alter table public.profiles enable row level security;
 
+-- Allow read access to the user's own profile
+create policy "Allow user read access" on public.profiles
+  for all using ((select auth.uid()) = id);
+
 -- inserts a row into public.profiles
 create function public.handle_new_user()
 returns trigger

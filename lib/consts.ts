@@ -19,7 +19,7 @@ export const tools: {
 	},
 	{
 		icon: "💬",
-		tool: "sign",
+		tool: "annotation",
 	},
 	{
 		icon: "📎",

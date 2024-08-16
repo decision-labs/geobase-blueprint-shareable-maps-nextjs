@@ -12,11 +12,70 @@ import {
 } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { useSupabase } from "../supabase-provider";
+import { MapProject } from "../project-layout";
+import { createUUID } from "@/lib/utils";
+import { useToast } from "../ui/use-toast";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
 
-export function CreateMapDialog({ variant = "default" }: { variant?: "default" | "icon" }) {
-	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+export function CreateMapDialog({
+	variant = "default",
+	setShowSidebar,
+	showSidebar,
+}: {
+	variant?: "default" | "icon";
+	setShowSidebar: (show: boolean) => void;
+	showSidebar: boolean;
+}) {
+	const supabase = useSupabase();
+	const { toast } = useToast();
+	const router = useRouter();
+	const [title, setTitle] = useState("New map 🗺");
+
+	useEffect(() => {
+		if (showSidebar) {
+			setTitle("New map 🗺");
+		}
+	}, [showSidebar]);
+
+	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
+
+		if (!supabase.session.current) {
+			console.error("No session available");
+			toast({
+				description: <span className="text-red-500">Failed to create new map. Please sign in first.</span>,
+			});
+			return;
+		}
+
+		const newProject: MapProject = {
+			uuid: createUUID(),
+			title,
+			description: "Map description goes here",
+			bounds: null,
+			profile_id: supabase.session.current.user.id,
+			published: false,
+		};
+
+		const { data, error } = await supabase.client.from("smb_map_projects").upsert([newProject]).select();
+
+		if (error) {
+			console.error("Error inserting new map project", error);
+			toast({
+				description: <span className="text-red-500">Failed to create new map. Please try again later.</span>,
+			});
+			return;
+		}
+
+		if (data) {
+			const createdProject = data[0] as MapProject;
+			router.push(`/maps/${createdProject.uuid}`);
+			setShowSidebar(false);
+		}
 	}
+
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
@@ -38,12 +97,20 @@ export function CreateMapDialog({ variant = "default" }: { variant?: "default" |
 						<Label htmlFor="new-project-name" className="sr-only">
 							Name
 						</Label>
-						<Input id="new-project-name" defaultValue="My new map 🗺" />
+						<Input
+							id="new-project-name"
+							type="text"
+							name="title"
+							value={title}
+							onChange={(e) => setTitle(e.currentTarget.value)}
+						/>
 					</div>
-					<Button type="submit" variant={"secondary"}>
-						<MaterialSymbol icon="add" size={20} />
-						Create
-					</Button>
+					<DialogClose asChild>
+						<Button type="submit" variant={"secondary"}>
+							<MaterialSymbol icon="add" size={20} />
+							Create
+						</Button>
+					</DialogClose>
 				</form>
 			</DialogContent>
 		</Dialog>

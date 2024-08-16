@@ -4,7 +4,7 @@ import { tools } from "@/lib/consts";
 import { useMapController } from "./map-controller";
 import { useMapProject } from "../project-layout";
 
-export type Tool = "hand" | "draw" | "pin" | "sign" | "attachment";
+export type Tool = "hand" | "draw" | "pin" | "annotation" | "attachment";
 
 export function Toolbar() {
 	const mapController = useMapController();

@@ -7,8 +7,15 @@ import { useToast } from "@/components/ui/use-toast";
 import { MaterialSymbol } from "react-material-symbols";
 import { RequestTransformFunction } from "maplibre-gl";
 
+export type Profile = {
+	nickname: string;
+	email: string;
+	photo_url: string;
+};
+
 export type SupabaseContextType = {
 	client: SupabaseClient;
+	profile: Profile | null;
 	auth: AuthSession | null;
 	session: ReturnType<typeof useRef<AuthSession | null>>;
 	baseUrl: string;
@@ -45,6 +52,7 @@ export const useSupabase = () => {
 
 export const SupabaseContext = createContext<SupabaseContextType>({
 	client: supabase,
+	profile: null,
 	auth: null,
 	baseUrl: GEOBASE_URL,
 	session: { current: null },
@@ -74,9 +82,24 @@ export function SupabaseContextProvider({ children }: { children: React.ReactNod
 	const prevAuthRef = useRef<AuthSession | null>(null);
 	const prevPathnameRef = useRef<string | null>(null);
 	const sessionRef = useRef<AuthSession | null>(null);
+	const [profile, setProfile] = useState<Profile | null>(null);
 	const router = useRouter();
 	const pathname = usePathname();
 	const { toast } = useToast();
+
+	const updateProfileData = async (session: AuthSession | null) => {
+		if (session) {
+			let { data, error } = await supabase.from("profiles").select("*").eq("id", session.user.id);
+
+			if (error) {
+				console.error("Error getting profile: ", error.message);
+			} else if (data && data.length > 0) {
+				setProfile(data[0]);
+			}
+		} else {
+			setProfile(null);
+		}
+	};
 
 	useEffect(() => {
 		const {
@@ -87,6 +110,8 @@ export function SupabaseContextProvider({ children }: { children: React.ReactNod
 			}
 			setAuth(session);
 			sessionRef.current = session;
+
+			updateProfileData(session);
 		});
 
 		return () => {
@@ -122,7 +147,9 @@ export function SupabaseContextProvider({ children }: { children: React.ReactNod
 	}, [auth]);
 
 	return (
-		<SupabaseContext.Provider value={{ client: supabase, auth, session: sessionRef, baseUrl: GEOBASE_URL }}>
+		<SupabaseContext.Provider
+			value={{ client: supabase, auth, profile, session: sessionRef, baseUrl: GEOBASE_URL }}
+		>
 			{children}
 		</SupabaseContext.Provider>
 	);
