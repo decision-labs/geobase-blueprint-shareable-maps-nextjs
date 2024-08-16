@@ -74,7 +74,7 @@ public.smb_drawings (
 	created_at timestamp with time zone not null default now(),
 	updated_at timestamp with time zone not null default now(),
 	shape geometry(LineString, 4326) not null,
-	meta jsonb not null default '{}'::jsonb,
+	meta text null,
 	profile_id uuid not null references public.profiles(id) on delete cascade,
 	project_id bigint not null references public.smb_map_projects(id) on delete cascade
 );
@@ -99,7 +99,7 @@ public.smb_pins (
 	created_at timestamp with time zone not null default now(),
 	updated_at timestamp with time zone not null default now(),
 	shape geometry(Point, 4326) not null,
-	meta jsonb not null default '{}'::jsonb,
+	meta text null,
 	profile_id uuid not null references public.profiles(id) on delete cascade,
 	project_id bigint not null references public.smb_map_projects(id) on delete cascade
 );
@@ -124,7 +124,7 @@ public.smb_annotations (
 	created_at timestamp with time zone not null default now(),
 	updated_at timestamp with time zone not null default now(),
 	shape geometry(Point, 4326) not null,
-	meta jsonb not null default '{}'::jsonb,
+	meta text null,
 	profile_id uuid not null references public.profiles(id) on delete cascade,
 	project_id bigint not null references public.smb_map_projects(id) on delete cascade
 );
@@ -149,7 +149,7 @@ public.smb_attachments (
 	created_at timestamp with time zone not null default now(),
 	updated_at timestamp with time zone not null default now(),
 	shape geometry(Point, 4326) not null,
-	meta jsonb not null default '{}'::jsonb,
+	meta text null,
 	profile_id uuid not null references public.profiles(id) on delete cascade,
 	project_id bigint not null references public.smb_map_projects(id) on delete cascade
 );

@@ -23,9 +23,11 @@ export function CreateMapDialog({
 	variant = "default",
 	setShowSidebar,
 	showSidebar,
+	setShouldRefresh,
 }: {
 	variant?: "default" | "icon";
 	setShowSidebar: (show: boolean) => void;
+	setShouldRefresh?: (refresh: boolean) => void;
 	showSidebar: boolean;
 }) {
 	const supabase = useSupabase();
@@ -72,7 +74,7 @@ export function CreateMapDialog({
 		if (data) {
 			const createdProject = data[0] as MapProject;
 			router.push(`/maps/${createdProject.uuid}`);
-			setShowSidebar(false);
+			if (setShouldRefresh) setShouldRefresh(true);
 		}
 	}
 

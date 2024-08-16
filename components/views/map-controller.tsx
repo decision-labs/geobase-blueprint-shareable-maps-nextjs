@@ -7,6 +7,7 @@ import Map, {
 	LngLatBoundsLike,
 	MapLayerMouseEvent,
 	MapRef,
+	Marker,
 	PaddingOptions,
 	PointLike,
 	Source,
@@ -15,7 +16,7 @@ import Map, {
 } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { MapUI } from "./map-ui";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, KeyboardEvent as ReactKeyboardEvent, useContext, useEffect, useRef, useState } from "react";
 import { Spinner } from "../ui/spinner";
 import { Tool } from "./toolbar";
 import { cn, GeoJSONFeatureCollection } from "@/lib/utils";
@@ -24,6 +25,7 @@ import { getMapTileURL, useSupabase } from "../supabase-provider";
 import { useMapProject } from "../project-layout";
 import { useToast } from "../ui/use-toast";
 import { LineLayerSpecification, LngLat, LngLatBounds, MapLibreEvent, RequestTransformFunction } from "maplibre-gl";
+import { Input } from "../ui/input";
 
 export type MapViewState = Partial<ViewState> & {
 	bounds?: LngLatBoundsLike;
@@ -81,6 +83,10 @@ export function MapController({
 	const lastCursor = useRef<string | undefined>(undefined);
 	const [selectedTool, setSelectedTool] = useState<Tool>("hand");
 	const [isDrawing, setIsDrawing] = useState(false);
+	const [annotationText, setAnnotationText] = useState("");
+	const [annotationPosition, setAnnotationPosition] = useState<LngLat>(new LngLat(0, 0));
+	const annotationInputRef = useRef<HTMLInputElement | null>(null);
+	const [isAnnotationEditing, setIsAnnotationEditing] = useState(false);
 	const [cursorIcon, setCursorIcon] = useState<React.ReactNode>(null);
 	const drawingCoordArray = useRef<number[][]>([]);
 	const canUseTools = useRef(true);
@@ -93,6 +99,19 @@ export function MapController({
 	const [activeDrawingGeoJson, setActiveDrawingGeoJson] = useState<GeoJSONFeatureCollection>({
 		type: "FeatureCollection",
 		features: [{ type: "Feature", geometry: { type: "LineString", coordinates: [] }, properties: {} }],
+	});
+
+	const [activeAnnotationGeoJson, setActiveAnnotationGeoJson] = useState<GeoJSONFeatureCollection>({
+		type: "FeatureCollection",
+		features: [
+			{
+				type: "Feature",
+				geometry: { type: "Point", coordinates: [] },
+				properties: {
+					text: "",
+				},
+			},
+		],
 	});
 
 	const drawingStyles: Omit<LineLayerSpecification, "id" | "source" | "type"> = {
@@ -122,6 +141,18 @@ export function MapController({
 		id: "public.smb_drawings",
 		tiles: [
 			getMapTileURL("public.smb_drawings", {
+				filter: `project_id=${mapProject ? mapProject.id : -1}`,
+			}),
+		],
+		params: {
+			filter: `project_id=${mapProject ? mapProject.id : -1}`,
+		},
+	};
+
+	const annotationsSourceConfig: TileSourceConfig = {
+		id: "public.smb_annotations",
+		tiles: [
+			getMapTileURL("public.smb_annotations", {
 				filter: `project_id=${mapProject ? mapProject.id : -1}`,
 			}),
 		],
@@ -174,6 +205,7 @@ export function MapController({
 		}
 		updateTiles(pinsSourceConfig);
 		updateTiles(drawingsSourceConfig);
+		updateTiles(annotationsSourceConfig);
 	}, [mapProject]);
 
 	useEffect(() => {
@@ -218,6 +250,55 @@ export function MapController({
 		if (e.key === "5") setSelectedTool("attachment");
 	};
 
+	const pushAnnotationToGeobase = async () => {
+		setIsAnnotationEditing(false);
+
+		if (!supabase.session.current || !mapProject || !mapProject.id) {
+			console.error("Either not authenticated or no project selected");
+			toast({
+				description: (
+					<span className="text-red-500">Failed to insert annotation. No session or project selected.</span>
+				),
+			});
+			return;
+		}
+
+		const { data, error } = await supabase.client.from("smb_annotations").insert([
+			{
+				shape: `POINT(${annotationPosition.lng} ${annotationPosition.lat})`,
+				meta: annotationText,
+				project_id: mapProject.id,
+				profile_id: supabase.session.current.user.id,
+			},
+		]);
+		if (error) {
+			console.error("Error inserting annotation", error);
+			toast({
+				description: <span className="text-red-500">Failed to insert annotation</span>,
+			});
+		} else {
+			updateTiles(annotationsSourceConfig);
+		}
+
+		setAnnotationText("");
+		setAnnotationPosition(new LngLat(0, 0));
+	};
+
+	const handleAnnotationBlur = () => {
+		if (!annotationText) {
+			setIsAnnotationEditing(false);
+			setAnnotationPosition(new LngLat(0, 0));
+		} else {
+			pushAnnotationToGeobase();
+		}
+	};
+
+	const handleAnnotationKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
+		if (e.key === "Enter") {
+			pushAnnotationToGeobase();
+		}
+	};
+
 	useEffect(() => {
 		window.addEventListener("keydown", handleKeydown);
 		return () => {
@@ -228,6 +309,24 @@ export function MapController({
 	useEffect(() => {
 		drawingCoordArray.current = activeDrawingGeoJson.features[0].geometry.coordinates as [number, number][];
 	}, [activeDrawingGeoJson]);
+
+	useEffect(() => {
+		setActiveAnnotationGeoJson({
+			type: "FeatureCollection",
+			features: [
+				{
+					type: "Feature",
+					geometry: {
+						type: "Point",
+						coordinates: [annotationPosition.lng, annotationPosition.lat],
+					},
+					properties: {
+						text: annotationText,
+					},
+				},
+			],
+		});
+	}, [annotationText, annotationPosition]);
 
 	const mapLoad = async () => {
 		if (!mapRef.current) return;
@@ -270,7 +369,7 @@ export function MapController({
 			const { data, error } = await supabase.client.from("smb_pins").insert([
 				{
 					shape: `POINT(${e.lngLat.lng} ${e.lngLat.lat})`,
-					meta: {},
+					meta: "",
 					project_id: mapProject.id,
 					profile_id: supabase.auth.user.id,
 				},
@@ -285,33 +384,13 @@ export function MapController({
 				updateTiles(pinsSourceConfig);
 			}
 		} else if (selectedTool === "annotation") {
-			// @TODO: First, I need to create a local layer to draw the annotation and have the user edit the text. Then we push.
-			// if (!supabase.auth || !mapProject || !mapProject.id) {
-			// 	console.error("Either not authenticated or no project selected");
-			// 	toast({
-			// 		description: <span className="text-red-500">Failed to insert annotation</span>,
-			// 	});
-			// 	return;
-			// }
-			// const { data, error } = await supabase.client.from("smb_annotations").insert([
-			// 	{
-			// 		shape: `POINT(${e.lngLat.lng} ${e.lngLat.lat})`,
-			// 		meta: {},
-			// 		project_id: mapProject.id,
-			// 		profile_id: supabase.auth.user.id,
-			// 		metadata: {
-			// 			text: "New annotation",
-			// 		},
-			// 	},
-			// ]);
-			// if (error) {
-			// 	console.error("Error inserting annotation", error);
-			// 	toast({
-			// 		description: <span className="text-red-500">Failed to insert annotation</span>,
-			// 	});
-			// } else {
-			// 	// updateTiles(annotationSourceConfig);
-			// }
+			const placeholder = "New annotation";
+			setIsAnnotationEditing(true);
+			setAnnotationText(placeholder);
+			setAnnotationPosition(e.lngLat);
+			setTimeout(() => {
+				if (annotationInputRef.current) annotationInputRef.current.focus();
+			}, 0);
 		}
 	};
 
@@ -369,7 +448,7 @@ export function MapController({
 		const { data, error } = await supabase.client.from("smb_drawings").insert([
 			{
 				shape: `LINESTRING(${drawingCoordArray.current.map((coord) => coord.join(" ")).join(",")})`,
-				meta: {},
+				meta: "",
 				project_id: mapProject.id,
 				profile_id: supabase.session.current.user.id,
 			},
@@ -513,6 +592,55 @@ export function MapController({
 							}}
 						/>
 					</Source>
+					<Source type="geojson" data={activeAnnotationGeoJson} id="active-annotation">
+						<Layer
+							id="active-annotation-layer"
+							source="active-annotation"
+							type="symbol"
+							layout={{
+								"text-field": ["get", "text"],
+								"text-size": 20,
+								"text-offset": [0, 0],
+								"text-anchor": "center",
+							}}
+							paint={{
+								"text-color": "black",
+								"text-halo-color": "white",
+								"text-halo-width": 1,
+							}}
+						/>
+					</Source>
+					<Source type="vector" {...annotationsSourceConfig}>
+						<Layer
+							id="annotations-layer"
+							type="symbol"
+							source-layer={annotationsSourceConfig.id}
+							layout={{
+								"text-field": ["get", "meta"],
+								"text-size": 20,
+								"text-offset": [0, 0],
+								"text-anchor": "center",
+							}}
+							paint={{
+								"text-color": "black",
+								"text-halo-color": "white",
+								"text-halo-width": 1,
+							}}
+						/>
+					</Source>
+					{isAnnotationEditing ? (
+						<Marker longitude={annotationPosition.lng} latitude={annotationPosition.lat}>
+							<Input
+								ref={annotationInputRef}
+								disabled={!isAnnotationEditing}
+								value={annotationText}
+								onChange={(e) => setAnnotationText(e.target.value)}
+								onKeyDown={(e) => handleAnnotationKeyDown(e)}
+								onBlur={(e) => handleAnnotationBlur()}
+								className="bg-white dark:bg-zinc-900 text-lg text-center"
+							/>
+						</Marker>
+					) : null}
 					<MapUI />
 					{loadingMessage ? (
 						<div className="fixed flex gap-3 items-center justify-center bg-white/50 dark:bg-zinc-800/50 top-0 left-0 w-screen h-screen z-50 text-4xl text-zinc-700 dark:text-zinc-300">
@@ -523,7 +651,7 @@ export function MapController({
 				</MapControllerContext.Provider>
 			</Map>
 			<Cursor>
-				<div className={cn(isMouseDown ? "translate-y-1" : "")}>{cursorIcon}</div>
+				{!annotationText ? <div className={cn(isMouseDown ? "translate-y-1" : "")}>{cursorIcon}</div> : null}
 			</Cursor>
 		</div>
 	);

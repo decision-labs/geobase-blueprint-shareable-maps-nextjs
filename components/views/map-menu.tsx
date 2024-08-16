@@ -27,7 +27,15 @@ import { useToast } from "../ui/use-toast";
 import { useMapController } from "./map-controller";
 import { Switch } from "../ui/switch";
 
-export function MapMenu({ project, className = "" }: { project: MapProject; className?: string }) {
+export function MapMenu({
+	project,
+	className = "",
+	setShouldRefresh,
+}: {
+	project: MapProject;
+	className?: string;
+	setShouldRefresh: (val: boolean) => void;
+}) {
 	const [dialogIntention, setDialogIntention] = useState<"share" | "delete">("share");
 	const { mapProject: activeProject } = useMapProject();
 	const mapController = useMapController();
@@ -93,6 +101,8 @@ export function MapMenu({ project, className = "" }: { project: MapProject; clas
 				description: "Map deleted",
 			});
 
+			setShouldRefresh(true);
+
 			mapController.setLoadingMessage("");
 
 			router.push("/");
@@ -110,6 +120,8 @@ export function MapMenu({ project, className = "" }: { project: MapProject; clas
 			toast({
 				description: "Map deleted",
 			});
+
+			setShouldRefresh(true);
 
 			// @TODO: Refetch the project list
 		}

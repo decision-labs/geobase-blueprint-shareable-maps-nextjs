@@ -24,6 +24,7 @@ export function Sidebar({
 	const supabase = useSupabase();
 	const { mapProject } = useMapProject();
 	const [userProjects, setUserProjects] = useState<MapProject[]>([]);
+	const [shouldRefresh, setShouldRefresh] = useState(false);
 	const [mapItems, setMapItems] = useState<any[]>([]);
 
 	const fetchUserProjects = async () => {
@@ -53,6 +54,13 @@ export function Sidebar({
 		if (showSidebar) fetchUserProjects();
 	}, [showSidebar]);
 
+	useEffect(() => {
+		if (shouldRefresh) {
+			fetchUserProjects();
+			setShouldRefresh(false);
+		}
+	}, [shouldRefresh]);
+
 	return (
 		<aside
 			className={cn(
@@ -71,7 +79,7 @@ export function Sidebar({
 						>
 							<h2 className="pb-2 flex items-center gap-4 justify-between text-sm font-semibold">
 								{mapProject?.title}
-								<MapMenu project={{ ...mapProject }} />
+								<MapMenu project={{ ...mapProject }} setShouldRefresh={setShouldRefresh} />
 							</h2>
 							<ScrollArea>
 								{mapItems.length > 0 ? (
@@ -98,7 +106,12 @@ export function Sidebar({
 				<ResizablePanel order={2} key="map-list" id="map-list-panel" className="p-3 flex flex-col gap-1">
 					<h2 className="pb-2 flex items-center gap-4 justify-between text-sm font-semibold">
 						My Maps
-						<CreateMapDialog variant="icon" setShowSidebar={setShowSidebar} showSidebar={showSidebar} />
+						<CreateMapDialog
+							variant="icon"
+							setShowSidebar={setShowSidebar}
+							showSidebar={showSidebar}
+							setShouldRefresh={setShouldRefresh}
+						/>
 					</h2>
 					<ScrollArea>
 						{userProjects.length > 0 ? (
@@ -106,6 +119,9 @@ export function Sidebar({
 								{userProjects.map((project) => (
 									<div key={project.id} className="relative">
 										<Link
+											onClick={() => {
+												fetchUserProjects();
+											}}
 											href={`/maps/${project.uuid}`}
 											className={cn(
 												"rounded-lg border border-transparent dark:border-zinc-600/50 transition p-2 flex items-center gap-3 w-full",
@@ -122,6 +138,7 @@ export function Sidebar({
 										</Link>
 										<MapMenu
 											project={{ ...project }}
+											setShouldRefresh={setShouldRefresh}
 											className="absolute right-1 -mr-px top-1/2 -translate-y-1/2"
 										/>
 									</div>
