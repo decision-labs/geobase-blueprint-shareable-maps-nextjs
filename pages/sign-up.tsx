@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useContext, useEffect, useState } from "react";
-import { SupabaseContext, useSupabase } from "@/components/supabase-provider";
+import { GeobaseContext, useGeobase } from "@/components/geobase-provider";
 import { MaterialSymbol } from "react-material-symbols";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -14,7 +14,7 @@ export default function SignUp() {
 	const [errorMessage, setErrorMessage] = useState("");
 	const [successMessage, setSuccessMessage] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
-	const supabase = useSupabase();
+	const geobase = useGeobase();
 
 	useEffect(() => {
 		setErrorMessage("");
@@ -37,7 +37,7 @@ export default function SignUp() {
 
 		setIsLoading(true);
 
-		const { data, error } = await supabase.client.auth.signUp({
+		const { data, error } = await geobase.supabase.auth.signUp({
 			email,
 			password,
 			options: {

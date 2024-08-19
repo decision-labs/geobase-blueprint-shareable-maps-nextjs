@@ -5,10 +5,10 @@ import { MaterialSymbol } from "react-material-symbols";
 import { Button } from "../ui/button";
 import { MapMenu } from "./map-menu";
 import { ScrollArea } from "../ui/scroll-area";
-import { MapProject, useMapProject } from "../project-layout";
+import { MapProject, useMapProject } from "../project-provider";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useSupabase } from "../supabase-provider";
+import { useGeobase } from "../geobase-provider";
 import { useToast } from "../ui/use-toast";
 import { CreateMapDialog } from "./create-map-dialog";
 
@@ -20,20 +20,38 @@ export function Sidebar({
 	setShowSidebar: (showSidebar: boolean) => void;
 }) {
 	const { toast } = useToast();
-	const router = useRouter();
-	const supabase = useSupabase();
+	const geobase = useGeobase();
 	const { mapProject } = useMapProject();
 	const [userProjects, setUserProjects] = useState<MapProject[]>([]);
 	const [shouldRefresh, setShouldRefresh] = useState(false);
-	const [mapItems, setMapItems] = useState<any[]>([]);
+	const [mapPins, setMapItems] = useState<any[]>([]);
+
+	const fetchMapItems = async () => {
+		if (!geobase.sessionRef.current || !mapProject) return;
+
+		let { data, error } = await geobase.supabase.from("smb_pins").select("meta").eq("project_id", mapProject.id);
+
+		if (error) {
+			console.error("Error fetching map items", error);
+			toast({
+				description: <span className="text-red-500">Could not fetch map items</span>,
+			});
+			return;
+		}
+
+		if (data) {
+			let items = data as any[];
+			setMapItems(items);
+		}
+	};
 
 	const fetchUserProjects = async () => {
-		if (!supabase.session.current) return;
+		if (!geobase.sessionRef.current) return;
 		console.log("Fetching user projects");
-		let { data, error } = await supabase.client
+		let { data, error } = await geobase.supabase
 			.from("smb_map_projects")
 			.select("*")
-			.eq("profile_id", supabase.session.current.user.id);
+			.eq("profile_id", geobase.sessionRef.current.user.id);
 
 		if (error) {
 			console.error("Error fetching user projects", error);
@@ -50,16 +68,36 @@ export function Sidebar({
 		}
 	};
 
+	const getCoords = (meta: string) => {
+		try {
+			const { lng, lat, color } = JSON.parse(meta);
+			return `${Number(lng).toFixed(5)}, ${Number(lat).toFixed(5)}`;
+		} catch (e) {
+			console.log("failed to parse pin meta", e);
+		}
+	};
+
 	useEffect(() => {
-		if (showSidebar) fetchUserProjects();
+		if (showSidebar) {
+			fetchMapItems();
+			fetchUserProjects();
+		}
 	}, [showSidebar]);
 
 	useEffect(() => {
 		if (shouldRefresh) {
 			fetchUserProjects();
+			fetchMapItems();
 			setShouldRefresh(false);
 		}
 	}, [shouldRefresh]);
+
+	useEffect(() => {
+		if (mapProject) {
+			fetchUserProjects();
+			fetchMapItems();
+		}
+	}, [mapProject]);
 
 	return (
 		<aside
@@ -82,14 +120,14 @@ export function Sidebar({
 								<MapMenu project={{ ...mapProject }} setShouldRefresh={setShouldRefresh} />
 							</h2>
 							<ScrollArea>
-								{mapItems.length > 0 ? (
+								{mapPins.length > 0 ? (
 									<div className="flex flex-col gap-2">
-										{mapItems.map((item, i) => (
+										{mapPins.map((item, i) => (
 											<button
 												key={i}
 												className="focus:outline-none flex items-center justify-between"
 											>
-												📍 Pin {i}
+												📍 {getCoords(item.meta)}
 											</button>
 										))}
 									</div>
@@ -124,7 +162,7 @@ export function Sidebar({
 											}}
 											href={`/maps/${project.uuid}`}
 											className={cn(
-												"rounded-lg border border-transparent dark:border-zinc-600/50 transition p-2 flex items-center gap-3 w-full",
+												"rounded-lg border border-transparent dark:border-zinc-600/50 transition p-2 flex items-center gap-1 justify-between w-full pr-10",
 												mapProject && project.id === mapProject.id
 													? "bg-white/80 dark:bg-zinc-500/50"
 													: "bg-white/50 dark:bg-zinc-500/20 hover:bg-white/80 dark:hover:bg-zinc-500/40",
@@ -135,6 +173,13 @@ export function Sidebar({
 											) : (
 												<>{project.title}</>
 											)}
+											{project.published ? (
+												<MaterialSymbol
+													title="Map published"
+													icon="public"
+													className="opacity-50 text-green-500"
+												/>
+											) : null}
 										</Link>
 										<MapMenu
 											project={{ ...project }}

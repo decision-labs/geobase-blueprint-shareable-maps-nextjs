@@ -6,11 +6,14 @@ import { useContext, useEffect, useState } from "react";
 import { Tool, Toolbar } from "./toolbar";
 import { Sidebar } from "./sidebar";
 import { AccountDetails } from "./account-details";
-import { useMapProject } from "../project-layout";
+import { useMapProject } from "../project-provider";
 import { useMapController } from "./map-controller";
 import { CreateMapDialog } from "./create-map-dialog";
+import { useGeobase } from "../geobase-provider";
+import { useToast } from "../ui/use-toast";
 
 export function MapUI() {
+	const geobase = useGeobase();
 	const mapController = useMapController();
 	const [showSidebar, setShowSidebar] = useState(false);
 	const [showAccountDetails, setShowAccountDetails] = useState(false);
@@ -19,6 +22,7 @@ export function MapUI() {
 	const [isEditingTitle, setIsEditingTitle] = useState(false);
 	const [isEditingDescription, setIsEditingDescription] = useState(false);
 	const { mapProject, setMapProject } = useMapProject();
+	const { toast } = useToast();
 
 	useEffect(() => {
 		if (!mapProject) return;
@@ -34,14 +38,66 @@ export function MapUI() {
 		setIsEditingDescription(true);
 	};
 
-	const handleTitleBlur = () => {
+	const handleTitleBlur = async () => {
 		setIsEditingTitle(false);
-		if (setMapProject && mapProject) setMapProject({ ...mapProject, title });
+
+		if (!mapProject) {
+			console.error("Error updating the map title");
+			toast({
+				description: <span className="text-red-500">Failed to update the map title. Please try again.</span>,
+			});
+			return;
+		}
+
+		const { data, error } = await geobase.supabase
+			.from("smb_map_projects")
+			.update({ title })
+			.eq("id", mapProject.id);
+
+		if (error) {
+			console.error("Error updating the map title", error);
+			toast({
+				description: <span className="text-red-500">Failed to update the map title. Please try again.</span>,
+			});
+			return;
+		}
+
+		toast({
+			description: "Map title updated successfully.",
+		});
 	};
 
-	const handleDescriptionBlur = () => {
+	const handleDescriptionBlur = async () => {
 		setIsEditingDescription(false);
-		if (setMapProject && mapProject) setMapProject({ ...mapProject, description });
+
+		if (!mapProject) {
+			console.error("Error updating the map description");
+			toast({
+				description: (
+					<span className="text-red-500">Failed to update the map description. Please try again.</span>
+				),
+			});
+			return;
+		}
+
+		const { data, error } = await geobase.supabase
+			.from("smb_map_projects")
+			.update({ description })
+			.eq("id", mapProject.id);
+
+		if (error) {
+			console.error("Error updating the map description", error);
+			toast({
+				description: (
+					<span className="text-red-500">Failed to update the map description. Please try again.</span>
+				),
+			});
+			return;
+		}
+
+		toast({
+			description: "Map description updated successfully.",
+		});
 	};
 
 	return (

@@ -1,6 +1,6 @@
 import "@/styles/globals.css";
 import "react-material-symbols/rounded";
-import { SupabaseContextProvider } from "@/components/supabase-provider";
+import { GeobaseContextProvider } from "@/components/geobase-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import type { AppProps } from "next/app";
 import { Toaster } from "@/components/ui/toaster";
@@ -8,10 +8,10 @@ import { Toaster } from "@/components/ui/toaster";
 export default function App({ Component, pageProps }: AppProps) {
 	return (
 		<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-			<SupabaseContextProvider>
+			<GeobaseContextProvider>
 				<Component {...pageProps} />
 				<Toaster />
-			</SupabaseContextProvider>
+			</GeobaseContextProvider>
 		</ThemeProvider>
 	);
 }

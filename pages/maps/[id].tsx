@@ -1,5 +1,5 @@
-import { MapProject, MapProjectContext, ProjectLayout } from "@/components/project-layout";
-import { useSupabase } from "@/components/supabase-provider";
+import { MapProject, MapProjectContext, ProjectLayout } from "@/components/project-provider";
+import { useGeobase } from "@/components/geobase-provider";
 import { useToast } from "@/components/ui/use-toast";
 import { MapController } from "@/components/views/map-controller";
 import { useRouter } from "next/router";
@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 
 export default function MapPage() {
 	const { toast } = useToast();
-	const supabase = useSupabase();
+	const geobase = useGeobase();
 	const router = useRouter();
 	const [mapProject, setMapProject] = useState<MapProject | undefined>();
 	const [loadingMessage, setLoadingMessage] = useState("Looking for your map project...");
@@ -15,7 +15,7 @@ export default function MapPage() {
 	const isLoading = useRef(true);
 
 	const updateMapProject = async (project: MapProject) => {
-		let { data, error } = await supabase.client.from("smb_map_projects").update(project).eq("uuid", project.uuid);
+		let { data, error } = await geobase.supabase.from("smb_map_projects").update(project).eq("uuid", project.uuid);
 
 		if (error) {
 			console.error(error);
@@ -30,7 +30,7 @@ export default function MapPage() {
 
 	const fetchMapProject = async (uuid: string) => {
 		isLoading.current = true;
-		let { data, error } = await supabase.client.from("smb_map_projects").select("*").eq("uuid", uuid);
+		let { data, error } = await geobase.supabase.from("smb_map_projects").select("*").eq("uuid", uuid);
 
 		if (error) {
 			console.error(error);
@@ -68,14 +68,26 @@ export default function MapPage() {
 		if (mapProject && isFirstLoad) {
 			setIsFirstLoad(false);
 			setLoadingMessage("");
+
+			if (!geobase.profile) {
+				router.push("/404");
+				return;
+			}
+
+			const channelId = `smb_map_projects:${mapProject.id}`;
+			const channels = geobase.supabase
+				.channel(channelId)
+				.on("postgres_changes", { event: "*", schema: "public", table: "smb_map_projects" }, (payload) => {
+					const newProj = payload.new as MapProject;
+					setMapProject(newProj);
+				})
+				.subscribe();
 		} else if (!isLoading.current && !mapProject) {
 			router.push("/404");
 		}
 
 		if (!isFirstLoad && mapProject) {
 			console.log("changed", mapProject);
-			// @TODO: Don't update the remote project here. Instead only update a column at a time and get the new project with a real-time listener.
-			updateMapProject(mapProject);
 			setLoadingMessage("");
 		}
 	}, [mapProject]);

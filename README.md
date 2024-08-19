@@ -1,9 +1,12 @@
 ## TODO:
 
--   [ ] Update README.md
--   [ ] Refactor useSupabase to useGeobase
+-   [ ] Add attachment tool logic
+-   [ ] Ability to remove map items
+-   [ ] Refactor auth redirection for public maps access
+
 -   [ ] Create an updated_at trigger
 -   [ ] Add React map tile code sample on studio tilserver page
+-   [ ] Update README.md
 
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 

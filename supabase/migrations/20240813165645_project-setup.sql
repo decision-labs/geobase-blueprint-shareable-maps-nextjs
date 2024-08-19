@@ -256,3 +256,19 @@ FOR EACH ROW EXECUTE FUNCTION public.update_project_bounds();
 CREATE TRIGGER update_bounds_on_attachment_change
 AFTER INSERT OR DELETE ON public.smb_attachments
 FOR EACH ROW EXECUTE FUNCTION public.update_project_bounds();
+
+--
+-- Avatar bucket policy
+--
+
+CREATE POLICY "Give anon users access to avatars bucket" ON storage.objects
+FOR SELECT TO public USING (bucket_id = 'avatars' AND auth.role() = 'anon');
+
+CREATE POLICY "Allow users to upload avatars" ON storage.objects
+FOR INSERT TO authenticated WITH CHECK (bucket_id = 'avatars' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Allow users to delete their avatar folder" ON storage.objects
+FOR DELETE TO authenticated USING (bucket_id = 'avatars' AND (select auth.uid()) = owner);
+
+CREATE POLICY "Allow users to update their avatar folder" ON storage.objects
+FOR UPDATE TO authenticated USING (bucket_id = 'avatars' AND (select auth.uid()) = owner);

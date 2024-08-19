@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { SupabaseContext, useSupabase } from "@/components/supabase-provider";
+import { GeobaseContext, useGeobase } from "@/components/geobase-provider";
 import { Spinner } from "@/components/ui/spinner";
 import { MaterialSymbol } from "react-material-symbols";
 import { useRouter } from "next/router";
@@ -15,7 +15,7 @@ export default function UpdatePassword() {
 	const [urlHasToken, setUrlHasToken] = useState(false);
 	const [errorMessage, setErrorMessage] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
-	const supabase = useSupabase();
+	const geobase = useGeobase();
 	const router = useRouter();
 
 	useEffect(() => {
@@ -32,7 +32,7 @@ export default function UpdatePassword() {
 		e.preventDefault();
 
 		setIsLoading(true);
-		const { error } = await supabase.client.auth.updateUser({ password });
+		const { error } = await geobase.supabase.auth.updateUser({ password });
 		setIsLoading(false);
 
 		setPassword("");

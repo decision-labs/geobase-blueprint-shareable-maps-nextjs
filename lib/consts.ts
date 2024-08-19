@@ -21,10 +21,10 @@ export const tools: {
 		icon: "💬",
 		tool: "annotation",
 	},
-	{
-		icon: "📎",
-		tool: "attachment",
-	},
+	// {
+	// 	icon: "📎",
+	// 	tool: "attachment",
+	// },
 ];
 
 export const neighborhoodStyles: {

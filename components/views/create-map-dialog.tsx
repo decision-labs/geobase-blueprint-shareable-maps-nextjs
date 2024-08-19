@@ -12,8 +12,8 @@ import {
 } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { useSupabase } from "../supabase-provider";
-import { MapProject } from "../project-layout";
+import { useGeobase } from "../geobase-provider";
+import { MapProject } from "../project-provider";
 import { createUUID } from "@/lib/utils";
 import { useToast } from "../ui/use-toast";
 import { useRouter } from "next/router";
@@ -30,7 +30,7 @@ export function CreateMapDialog({
 	setShouldRefresh?: (refresh: boolean) => void;
 	showSidebar: boolean;
 }) {
-	const supabase = useSupabase();
+	const geobase = useGeobase();
 	const { toast } = useToast();
 	const router = useRouter();
 	const [title, setTitle] = useState("New map 🗺");
@@ -44,7 +44,7 @@ export function CreateMapDialog({
 	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
-		if (!supabase.session.current) {
+		if (!geobase.sessionRef.current) {
 			console.error("No session available");
 			toast({
 				description: <span className="text-red-500">Failed to create new map. Please sign in first.</span>,
@@ -57,11 +57,11 @@ export function CreateMapDialog({
 			title,
 			description: "Map description goes here",
 			bounds: null,
-			profile_id: supabase.session.current.user.id,
+			profile_id: geobase.sessionRef.current.user.id,
 			published: false,
 		};
 
-		const { data, error } = await supabase.client.from("smb_map_projects").upsert([newProject]).select();
+		const { data, error } = await geobase.supabase.from("smb_map_projects").upsert([newProject]).select();
 
 		if (error) {
 			console.error("Error inserting new map project", error);

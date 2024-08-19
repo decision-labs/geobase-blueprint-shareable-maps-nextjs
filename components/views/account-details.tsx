@@ -2,9 +2,10 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { MaterialSymbol } from "react-material-symbols";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { useSupabase } from "../supabase-provider";
+import { useGeobase } from "../geobase-provider";
 import { useEffect, useState } from "react";
-import { MapProject } from "../project-layout";
+import { MapProject } from "../project-provider";
+import { useToast } from "../ui/use-toast";
 
 export function AccountDetails({
 	showAccountDetails,
@@ -13,15 +14,16 @@ export function AccountDetails({
 	showAccountDetails: boolean;
 	setShowAccountDetails: (show: boolean) => void;
 }) {
-	const supabase = useSupabase();
+	const geobase = useGeobase();
+	const { toast } = useToast();
 	const [mapCount, setMapCount] = useState(0);
 
 	const fetchMapCount = async () => {
-		if (!supabase.session.current) return;
-		let { data, error } = await supabase.client
+		if (!geobase.sessionRef.current) return;
+		let { data, error } = await geobase.supabase
 			.from("smb_map_projects")
 			.select("id")
-			.eq("profile_id", supabase.session.current.user.id);
+			.eq("profile_id", geobase.sessionRef.current.user.id);
 
 		if (error) {
 			console.error("Error fetching user projects", error);
@@ -32,6 +34,100 @@ export function AccountDetails({
 			let projects = data as MapProject[];
 			setMapCount(projects.length);
 		}
+	};
+
+	const uploadAvatar = async () => {
+		const fileInput = document.createElement("input");
+		fileInput.type = "file";
+		fileInput.accept = "image/*";
+		fileInput.onchange = async (e) => {
+			const file = (e.target as HTMLInputElement).files?.[0];
+			if (!file) return;
+
+			const reader = new FileReader();
+			reader.onload = async (e) => {
+				const ext = file.name.split(".").pop();
+				const filedata = e.target?.result;
+				if (typeof filedata !== "string") return;
+				const filebody = await fetch(filedata).then((res) => res.blob());
+				const filename = `${geobase.profile?.id}/avatar.${ext}`;
+
+				if (!geobase.profile) {
+					toast({
+						description: (
+							<span className="text-red-500">Failed to upload avatar. Please try again later.</span>
+						),
+					});
+					return;
+				}
+
+				// if (geobase.profile.photo_url) {
+				// 	const { data, error } = await geobase.supabase.storage
+				// 		.from("avatars")
+				// 		.remove([
+				// 			geobase.profile.photo_url.replace(
+				// 				`${geobase.baseUrl}/storage/v1/object/public/avatars/`,
+				// 				"",
+				// 			),
+				// 		]);
+
+				// 	console.log(data, error);
+
+				// 	if (error) {
+				// 		console.error("Error removing avatar", error);
+				// 		toast({
+				// 			description: (
+				// 				<span className="text-red-500">Failed to update avatar. Please try again later.</span>
+				// 			),
+				// 		});
+				// 		return;
+				// 	}
+				// }
+
+				const { data, error } = await geobase.supabase.storage.from("avatars").upload(filename, filebody, {
+					cacheControl: "3600",
+					upsert: true,
+				});
+
+				if (error) {
+					console.error("Error uploading avatar", error);
+					toast({
+						description: (
+							<span className="text-red-500">Failed to upload avatar. Please try again later.</span>
+						),
+					});
+					return;
+				}
+
+				const photo_url = `${geobase.baseUrl}/storage/v1/object/public/avatars/${filename}`;
+
+				const { data: profileData, error: profileError } = await geobase.supabase
+					.from("profiles")
+					.update({ photo_url })
+					.eq("id", geobase.profile?.id)
+					.select();
+
+				if (profileError) {
+					console.error("Error updating profile", profileError);
+					toast({
+						description: (
+							<span className="text-red-500">Failed to upload avatar. Please try again later.</span>
+						),
+					});
+					return;
+				}
+
+				if (geobase.setProfile) {
+					geobase.setProfile(profileData?.[0]);
+				}
+
+				toast({
+					description: "Avatar uploaded successfully.",
+				});
+			};
+			reader.readAsDataURL(file);
+		};
+		fileInput.click();
 	};
 
 	useEffect(() => {
@@ -57,16 +153,24 @@ export function AccountDetails({
 			>
 				<MaterialSymbol icon="close" size={20} />
 			</Button>
-			<button className="rounded-full w-fit hover:opacity-80">
+			<button
+				className="rounded-full w-fit hover:opacity-80 group relative hover:bg-white/50 dark:hover:bg-white/10 transition"
+				onClick={uploadAvatar}
+			>
 				<Avatar className="h-32 w-32">
-					<AvatarImage src={supabase.profile?.photo_url} alt="Avatar" />
+					<AvatarImage src={geobase.profile?.photo_url} alt="Avatar" className="object-cover" />
 					<AvatarFallback>
 						<MaterialSymbol icon="person" size={96} fill className="opacity-20" />
 					</AvatarFallback>
 				</Avatar>
+				<MaterialSymbol
+					icon="edit"
+					size={36}
+					className="absolute top-1/2 left-1/2 opacity-0 -translate-x-1/2 -translate-y-1/2 group-hover:opacity-100 transition"
+				/>
 			</button>
-			<h2 className="text-lg mt-2">{supabase.profile?.nickname}</h2>
-			<p className="text-sm opacity-60">{supabase.auth?.user.email}</p>
+			<h2 className="text-lg mt-2">{geobase.profile?.nickname}</h2>
+			<p className="text-sm opacity-60">{geobase.session?.user.email}</p>
 			<p className="text-sm opacity-60">{mapCount} Maps Created</p>
 		</aside>
 	);

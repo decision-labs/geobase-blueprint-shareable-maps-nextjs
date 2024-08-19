@@ -21,8 +21,8 @@ import { Spinner } from "../ui/spinner";
 import { Tool } from "./toolbar";
 import { cn, GeoJSONFeatureCollection } from "@/lib/utils";
 import { Cursor } from "../ui/cursor";
-import { getMapTileURL, useSupabase } from "../supabase-provider";
-import { useMapProject } from "../project-layout";
+import { getMapTileURL, useGeobase } from "../geobase-provider";
+import { useMapProject } from "../project-provider";
 import { useToast } from "../ui/use-toast";
 import { LineLayerSpecification, LngLat, LngLatBounds, MapLibreEvent, RequestTransformFunction } from "maplibre-gl";
 import { Input } from "../ui/input";
@@ -73,7 +73,7 @@ export function MapController({
 	setLoadingMessage: (message: string) => void;
 }) {
 	const { toast } = useToast();
-	const supabase = useSupabase();
+	const geobase = useGeobase();
 	const theme = useTheme();
 	const mapRef = useRef<MapRef | null>(null);
 	const { mapProject, setMapProject } = useMapProject();
@@ -177,7 +177,7 @@ export function MapController({
 				break;
 			case "pin":
 				setCursor("crosshair");
-				setCursorIcon(<div className="w-8 h-8 text-4xl -translate-x-[18.5px] -translate-y-[44px]">{icon}</div>);
+				setCursorIcon(<div className="w-8 h-8 text-4xl -translate-x-[18.5px] -translate-y-[40px]">{icon}</div>);
 				break;
 			case "annotation":
 				setCursor("copy");
@@ -247,13 +247,13 @@ export function MapController({
 		if (e.key === "2") setSelectedTool("draw");
 		if (e.key === "3") setSelectedTool("pin");
 		if (e.key === "4") setSelectedTool("annotation");
-		if (e.key === "5") setSelectedTool("attachment");
+		// if (e.key === "5") setSelectedTool("attachment");
 	};
 
 	const pushAnnotationToGeobase = async () => {
 		setIsAnnotationEditing(false);
 
-		if (!supabase.session.current || !mapProject || !mapProject.id) {
+		if (!geobase.sessionRef.current || !mapProject || !mapProject.id) {
 			console.error("Either not authenticated or no project selected");
 			toast({
 				description: (
@@ -263,12 +263,12 @@ export function MapController({
 			return;
 		}
 
-		const { data, error } = await supabase.client.from("smb_annotations").insert([
+		const { data, error } = await geobase.supabase.from("smb_annotations").insert([
 			{
 				shape: `POINT(${annotationPosition.lng} ${annotationPosition.lat})`,
 				meta: annotationText,
 				project_id: mapProject.id,
-				profile_id: supabase.session.current.user.id,
+				profile_id: geobase.sessionRef.current.user.id,
 			},
 		]);
 		if (error) {
@@ -285,12 +285,8 @@ export function MapController({
 	};
 
 	const handleAnnotationBlur = () => {
-		if (!annotationText) {
-			setIsAnnotationEditing(false);
-			setAnnotationPosition(new LngLat(0, 0));
-		} else {
-			pushAnnotationToGeobase();
-		}
+		setIsAnnotationEditing(false);
+		setAnnotationPosition(new LngLat(0, 0));
 	};
 
 	const handleAnnotationKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -332,10 +328,10 @@ export function MapController({
 		if (!mapRef.current) return;
 		const m = mapRef.current.getMap();
 		const pin = await m.loadImage("/assets/pin.png");
-		const attachment = await m.loadImage("/assets/attachment.png");
+		// const attachment = await m.loadImage("/assets/attachment.png");
 		const annotation = await m.loadImage("/assets/annotation.png");
 		m.addImage("pin", pin.data);
-		m.addImage("attachment", attachment.data);
+		// m.addImage("attachment", attachment.data);
 		m.addImage("annotation", annotation.data);
 	};
 
@@ -358,7 +354,7 @@ export function MapController({
 
 	const mapClick = async (e: MapLayerMouseEvent) => {
 		if (selectedTool === "pin") {
-			if (!supabase.auth || !mapProject || !mapProject.id) {
+			if (!geobase.session || !mapProject || !mapProject.id) {
 				console.error("Either not authenticated or no project selected");
 				toast({
 					description: <span className="text-red-500">Failed to insert pin</span>,
@@ -366,12 +362,16 @@ export function MapController({
 				return;
 			}
 
-			const { data, error } = await supabase.client.from("smb_pins").insert([
+			const { data, error } = await geobase.supabase.from("smb_pins").insert([
 				{
 					shape: `POINT(${e.lngLat.lng} ${e.lngLat.lat})`,
-					meta: "",
+					meta: JSON.stringify({
+						lng: e.lngLat.lng,
+						lat: e.lngLat.lat,
+						color: "red",
+					}),
 					project_id: mapProject.id,
-					profile_id: supabase.auth.user.id,
+					profile_id: geobase.session.user.id,
 				},
 			]);
 
@@ -389,7 +389,10 @@ export function MapController({
 			setAnnotationText(placeholder);
 			setAnnotationPosition(e.lngLat);
 			setTimeout(() => {
-				if (annotationInputRef.current) annotationInputRef.current.focus();
+				if (annotationInputRef.current) {
+					annotationInputRef.current.focus();
+					annotationInputRef.current.setSelectionRange(0, placeholder.length);
+				}
 			}, 0);
 		}
 	};
@@ -443,14 +446,14 @@ export function MapController({
 		});
 		window.removeEventListener("mouseup", mapMouseUp);
 
-		if (!mapProject || !supabase.session.current) return;
+		if (!mapProject || !geobase.sessionRef.current) return;
 
-		const { data, error } = await supabase.client.from("smb_drawings").insert([
+		const { data, error } = await geobase.supabase.from("smb_drawings").insert([
 			{
 				shape: `LINESTRING(${drawingCoordArray.current.map((coord) => coord.join(" ")).join(",")})`,
 				meta: "",
 				project_id: mapProject.id,
-				profile_id: supabase.session.current.user.id,
+				profile_id: geobase.sessionRef.current.user.id,
 			},
 		]);
 
@@ -485,14 +488,14 @@ export function MapController({
 	const transformRequest: RequestTransformFunction = (url, resourceType) => {
 		if (
 			resourceType === "Tile" &&
-			url.startsWith(supabase.baseUrl) &&
-			supabase.session &&
-			supabase.session.current
+			url.startsWith(geobase.baseUrl) &&
+			geobase.sessionRef &&
+			geobase.sessionRef.current
 		) {
 			return {
 				url,
 				headers: {
-					Authorization: `Bearer ${supabase.session.current.access_token}`,
+					Authorization: `Bearer ${geobase.sessionRef.current.access_token}`,
 				},
 			};
 		}
@@ -588,6 +591,7 @@ export function MapController({
 								"icon-image": "pin",
 								"icon-anchor": "bottom",
 								"icon-size": 0.3,
+								"icon-offset": [0, 10],
 								"icon-allow-overlap": true,
 							}}
 						/>

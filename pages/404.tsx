@@ -12,7 +12,7 @@ export default function NotFound() {
 				<p className={`text-center`}>The map or page you are looking for does not exist.</p>
 				<Button
 					onClick={() => {
-						router.push("/new");
+						router.push("/");
 					}}
 				>
 					Create a new map

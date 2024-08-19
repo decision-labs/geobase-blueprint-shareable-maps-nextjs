@@ -11,18 +11,18 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useSupabase } from "../supabase-provider";
+import { useGeobase } from "../geobase-provider";
 import { useTheme } from "next-themes";
 import { useMapController } from "./map-controller";
 
 export function AccountMenu({ setShowAccountDetails }: { setShowAccountDetails: (show: boolean) => void }) {
-	const supabase = useSupabase();
+	const geobase = useGeobase();
 	const mapController = useMapController();
 	const theme = useTheme();
 	const signOut = async () => {
 		if (mapController) {
 			mapController.setLoadingMessage("Signing out...");
-			await supabase.client.auth.signOut();
+			await geobase.supabase.auth.signOut();
 			mapController.setLoadingMessage("");
 		}
 	};
@@ -32,7 +32,7 @@ export function AccountMenu({ setShowAccountDetails }: { setShowAccountDetails: 
 			<DropdownMenuTrigger asChild>
 				<button className="shadow-sm hover:opacity-80 rounded-full">
 					<Avatar className="h-7 w-7">
-						<AvatarImage src={supabase.profile?.photo_url} alt="Avatar" />
+						<AvatarImage src={geobase.profile?.photo_url} alt="Avatar" className="object-cover" />
 						<AvatarFallback>
 							<MaterialSymbol icon="person" size={20} fill className="opacity-50" />
 						</AvatarFallback>
@@ -44,23 +44,23 @@ export function AccountMenu({ setShowAccountDetails }: { setShowAccountDetails: 
 					className="gap-2 items-center font-semibold"
 					onClick={() => setShowAccountDetails(true)}
 				>
-					{supabase.auth?.user?.email}
+					{geobase.session?.user?.email}
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger className="gap-2 items-center capitalize">
 						<MaterialSymbol icon="settings" size={16} className="" />
-						Theme: {theme.theme}
+						Theme: {theme.theme === "light" ? "Day" : theme.theme === "dark" ? "Night" : "System"}
 					</DropdownMenuSubTrigger>
 					<DropdownMenuPortal>
 						<DropdownMenuSubContent>
 							<DropdownMenuItem className="gap-2 items-center" onClick={() => theme.setTheme("light")}>
 								<MaterialSymbol icon="wb_sunny" size={16} className="" />
-								Light
+								Day
 							</DropdownMenuItem>
 							<DropdownMenuItem className="gap-2 items-center" onClick={() => theme.setTheme("dark")}>
 								<MaterialSymbol icon="nights_stay" size={16} className="" />
-								Dark
+								Night
 							</DropdownMenuItem>
 							<DropdownMenuItem className="gap-2 items-center" onClick={() => theme.setTheme("system")}>
 								<MaterialSymbol icon="display_settings" size={16} className="" />

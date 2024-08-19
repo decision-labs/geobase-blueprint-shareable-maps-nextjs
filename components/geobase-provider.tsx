@@ -8,16 +8,18 @@ import { MaterialSymbol } from "react-material-symbols";
 import { RequestTransformFunction } from "maplibre-gl";
 
 export type Profile = {
+	id: string;
 	nickname: string;
 	email: string;
 	photo_url: string;
 };
 
-export type SupabaseContextType = {
-	client: SupabaseClient;
+export type GeobaseContextType = {
+	supabase: SupabaseClient;
 	profile: Profile | null;
-	auth: AuthSession | null;
-	session: ReturnType<typeof useRef<AuthSession | null>>;
+	setProfile?: (profile: Profile | null) => void;
+	session: AuthSession | null;
+	sessionRef: ReturnType<typeof useRef<AuthSession | null>>;
 	baseUrl: string;
 };
 
@@ -42,20 +44,20 @@ export function getMapTileURL(tileName: string, params: Record<string, string> =
 	return `${GEOBASE_URL}/tileserver/v1/${tileName}/{z}/{x}/{y}.pbf?${searchParams}`;
 }
 
-export const useSupabase = () => {
-	const context = useContext(SupabaseContext);
+export const useGeobase = () => {
+	const context = useContext(GeobaseContext);
 	if (context === undefined) {
-		throw new Error("useSupabase must be used within a SupabaseContextProvider");
+		throw new Error("useGeobase must be used within a SupabaseContextProvider");
 	}
 	return context;
 };
 
-export const SupabaseContext = createContext<SupabaseContextType>({
-	client: supabase,
+export const GeobaseContext = createContext<GeobaseContextType>({
+	supabase,
 	profile: null,
-	auth: null,
+	session: null,
 	baseUrl: GEOBASE_URL,
-	session: { current: null },
+	sessionRef: { current: null },
 });
 
 export function handleAuthRedirects(auth: AuthSession | null, router: ReturnType<typeof useRouter>) {
@@ -77,9 +79,9 @@ export function handleAuthRedirects(auth: AuthSession | null, router: ReturnType
 	}
 }
 
-export function SupabaseContextProvider({ children }: { children: React.ReactNode }) {
-	const [auth, setAuth] = useState<AuthSession | null>(null);
-	const prevAuthRef = useRef<AuthSession | null>(null);
+export function GeobaseContextProvider({ children }: { children: React.ReactNode }) {
+	const [session, setSession] = useState<AuthSession | null>(null);
+	const prevSessionRef = useRef<AuthSession | null>(null);
 	const prevPathnameRef = useRef<string | null>(null);
 	const sessionRef = useRef<AuthSession | null>(null);
 	const [profile, setProfile] = useState<Profile | null>(null);
@@ -104,14 +106,14 @@ export function SupabaseContextProvider({ children }: { children: React.ReactNod
 	useEffect(() => {
 		const {
 			data: { subscription },
-		} = supabase.auth.onAuthStateChange((event, session) => {
+		} = supabase.auth.onAuthStateChange((event, latestSession) => {
 			if (event === "INITIAL_SESSION") {
-				handleAuthRedirects(session, router);
+				handleAuthRedirects(latestSession, router);
 			}
-			setAuth(session);
-			sessionRef.current = session;
+			setSession(latestSession);
+			sessionRef.current = latestSession;
 
-			updateProfileData(session);
+			updateProfileData(latestSession);
 		});
 
 		return () => {
@@ -122,35 +124,33 @@ export function SupabaseContextProvider({ children }: { children: React.ReactNod
 	useEffect(() => {
 		if (prevPathnameRef.current !== pathname) {
 			if (prevPathnameRef.current !== null) {
-				handleAuthRedirects(auth, router);
+				handleAuthRedirects(session, router);
 			}
 			prevPathnameRef.current = pathname;
 		}
 	}, [pathname]);
 
 	useEffect(() => {
-		if (prevAuthRef.current === null && auth && router.pathname !== "/update-password") {
-			handleAuthRedirects(auth, router);
+		if (prevSessionRef.current === null && session && router.pathname !== "/update-password") {
+			handleAuthRedirects(session, router);
 			toast({
 				description: (
 					<span className="flex items-center gap-2">
 						<MaterialSymbol icon="waving_hand" size={20} weight={300} grade={300} />
-						Welcome back, {auth.user?.email}
+						Welcome back, {session.user?.email}
 					</span>
 				),
 			});
-		} else if (prevAuthRef.current !== null && auth === null) {
+		} else if (prevSessionRef.current !== null && session === null) {
 			console.log("Logged out");
-			handleAuthRedirects(auth, router);
+			handleAuthRedirects(session, router);
 		}
-		prevAuthRef.current = auth;
-	}, [auth]);
+		prevSessionRef.current = session;
+	}, [session]);
 
 	return (
-		<SupabaseContext.Provider
-			value={{ client: supabase, auth, profile, session: sessionRef, baseUrl: GEOBASE_URL }}
-		>
+		<GeobaseContext.Provider value={{ supabase, session, profile, setProfile, sessionRef, baseUrl: GEOBASE_URL }}>
 			{children}
-		</SupabaseContext.Provider>
+		</GeobaseContext.Provider>
 	);
 }

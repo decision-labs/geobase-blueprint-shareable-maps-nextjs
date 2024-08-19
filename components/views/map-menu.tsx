@@ -20,9 +20,9 @@ import {
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { useEffect, useRef, useState } from "react";
-import { MapProject, useMapProject } from "../project-layout";
+import { MapProject, useMapProject } from "../project-provider";
 import { useRouter } from "next/router";
-import { useSupabase } from "../supabase-provider";
+import { useGeobase } from "../geobase-provider";
 import { useToast } from "../ui/use-toast";
 import { useMapController } from "./map-controller";
 import { Switch } from "../ui/switch";
@@ -40,7 +40,7 @@ export function MapMenu({
 	const { mapProject: activeProject } = useMapProject();
 	const mapController = useMapController();
 	const router = useRouter();
-	const supabase = useSupabase();
+	const geobase = useGeobase();
 	const { toast } = useToast();
 	const [isMapPublic, setIsMapPublic] = useState(false);
 	const initialPublicStateLoaded = useRef(false);
@@ -55,7 +55,7 @@ export function MapMenu({
 	const handleSwitchChange = async () => {
 		const isPublished = !isMapPublic;
 		setIsMapPublic(isPublished);
-		const { data, error } = await supabase.client
+		const { data, error } = await geobase.supabase
 			.from("smb_map_projects")
 			.update({ published: isPublished })
 			.eq("id", project.id);
@@ -87,7 +87,7 @@ export function MapMenu({
 		if (activeProject?.id === project.id) {
 			mapController.setLoadingMessage("Deleting the map...");
 
-			const { error } = await supabase.client.from("smb_map_projects").delete().eq("id", project.id);
+			const { error } = await geobase.supabase.from("smb_map_projects").delete().eq("id", project.id);
 
 			if (error) {
 				console.error("Error deleting the map", error);
@@ -107,7 +107,7 @@ export function MapMenu({
 
 			router.push("/");
 		} else {
-			const { error } = await supabase.client.from("smb_map_projects").delete().eq("id", project.id);
+			const { error } = await geobase.supabase.from("smb_map_projects").delete().eq("id", project.id);
 
 			if (error) {
 				console.error("Error deleting the map", error);
@@ -122,8 +122,6 @@ export function MapMenu({
 			});
 
 			setShouldRefresh(true);
-
-			// @TODO: Refetch the project list
 		}
 	};
 

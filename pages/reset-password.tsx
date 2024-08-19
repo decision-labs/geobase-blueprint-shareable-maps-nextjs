@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useState } from "react";
-import { useSupabase } from "@/components/supabase-provider";
+import { useGeobase } from "@/components/geobase-provider";
 import { Spinner } from "@/components/ui/spinner";
 import { MaterialSymbol } from "react-material-symbols";
 
@@ -11,13 +11,13 @@ export default function ResetPassword() {
 	const [email, setEmail] = useState("");
 	const [success, setSuccess] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
-	const supabase = useSupabase();
+	const geobase = useGeobase();
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 
 		setIsLoading(true);
-		await supabase.client.auth.resetPasswordForEmail(email, {
+		await geobase.supabase.auth.resetPasswordForEmail(email, {
 			redirectTo: "/reset-password",
 		});
 		setIsLoading(false);

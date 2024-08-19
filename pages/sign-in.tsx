@@ -3,25 +3,24 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useContext, useState } from "react";
-import { SupabaseContext, useSupabase } from "@/components/supabase-provider";
+import { GeobaseContext, useGeobase } from "@/components/geobase-provider";
 import { MaterialSymbol } from "react-material-symbols";
 import { useRouter } from "next/router";
 import { Spinner } from "@/components/ui/spinner";
-import { Layout } from "@/components/layout";
 
 export default function SignIn() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [errorMessage, setErrorMessage] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
-	const supabase = useSupabase();
+	const geobase = useGeobase();
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		setErrorMessage("");
 		e.preventDefault();
 
 		setIsLoading(true);
-		const { error } = await supabase.client.auth.signInWithPassword({
+		const { error } = await geobase.supabase.auth.signInWithPassword({
 			email,
 			password,
 		});
