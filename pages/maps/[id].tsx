@@ -14,20 +14,6 @@ export default function MapPage() {
 	const [isFirstLoad, setIsFirstLoad] = useState(true);
 	const isLoading = useRef(true);
 
-	const updateMapProject = async (project: MapProject) => {
-		let { data, error } = await geobase.supabase.from("smb_map_projects").update(project).eq("uuid", project.uuid);
-
-		if (error) {
-			console.error(error);
-			toast({
-				description: <span className="text-red-500">Failed to update project.</span>,
-			});
-			return;
-		}
-
-		console.log("Project updated");
-	};
-
 	const fetchMapProject = async (uuid: string) => {
 		isLoading.current = true;
 		let { data, error } = await geobase.supabase.from("smb_map_projects").select("*").eq("uuid", uuid);

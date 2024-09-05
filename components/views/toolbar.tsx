@@ -13,22 +13,24 @@ export function Toolbar() {
 	if (!mapProject) return null;
 
 	return (
-		<div className="absolute flex items-center justify-between max-w-full w-fit h-8 bottom-0 left-1/2 -translate-x-1/2 py-2 px-3 rounded-t-3xl bg-white/30 dark:bg-zinc-600/30 backdrop-blur-md border border-transparent dark:border-zinc-700/50 shadow-xl z-50 text-5xl">
+		<div className="absolute flex items-center justify-between max-w-full w-fit h-16 bottom-3 left-1/2 -translate-x-1/2 py-2 px-3 rounded-full bg-white/30 dark:bg-zinc-600/30 backdrop-blur-md border border-transparent dark:border-zinc-700/50 shadow-xl z-50 text-3xl">
 			{tools.map(({ icon, tool }) => (
-				<button
-					key={tool}
-					onClick={() => {
-						if (mapController) mapController.setSelectedTool(tool);
-					}}
-					className={cn(
-						"py-3 px-4 transition focus:outline-none",
-						mapController && mapController.selectedTool === tool
-							? "-translate-y-5"
-							: "hover:-translate-y-3",
+				<div key={tool} className="relative flex flex-col items-center">
+					<button
+						onClick={() => {
+							if (mapController) mapController.setSelectedTool(tool);
+						}}
+						className={cn(
+							"py-3 px-4 transition-[margin] focus:outline-none hover:opacity-80",
+							mapController && mapController.selectedTool === tool ? "-mt-3" : "",
+						)}
+					>
+						{icon}
+					</button>
+					{mapController && mapController.selectedTool === tool && (
+						<div className="absolute bottom-0.5 w-4 h-1 rounded-md bg-current opacity-50" />
 					)}
-				>
-					{icon}
-				</button>
+				</div>
 			))}
 		</div>
 	);

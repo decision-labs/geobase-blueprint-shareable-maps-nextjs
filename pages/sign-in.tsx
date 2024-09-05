@@ -15,6 +15,25 @@ export default function SignIn() {
 	const [isLoading, setIsLoading] = useState(false);
 	const geobase = useGeobase();
 
+	async function signInWithGithub() {
+		setErrorMessage("");
+		setIsLoading(true);
+
+		const { data, error } = await geobase.supabase.auth.signInWithOAuth({
+			provider: "github",
+			options: {
+				redirectTo: `http://127.0.0.1:3001/`,
+			},
+		});
+
+		setIsLoading(false);
+
+		if (error) {
+			setErrorMessage(error.message);
+			return;
+		}
+	}
+
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		setErrorMessage("");
 		e.preventDefault();
@@ -80,6 +99,14 @@ export default function SignIn() {
 								<Button type="submit" className="w-full gap-2" disabled={isLoading}>
 									{isLoading ? <Spinner className="opacity-50" /> : null}
 									Sign In
+								</Button>
+								<Button
+									variant={"outline"}
+									className="w-full gap-2"
+									onClick={signInWithGithub}
+									disabled={isLoading}
+								>
+									Sign In with Github
 								</Button>
 								<Link
 									href="/reset-password"

@@ -3,6 +3,8 @@
 -   [ ] Add attachment tool logic
 -   [ ] Ability to remove map items
 -   [ ] Refactor auth redirection for public maps access
+-   [ ] Implement "Create copy of map"
+-   [ ] When registering with github provider, use the github username as the username
 
 -   [ ] Create an updated_at trigger
 -   [ ] Add React map tile code sample on studio tilserver page
