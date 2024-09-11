@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from "react";
+import { Profile } from "./geobase-provider";
 
 export type MapProject = {
 	id?: number;
@@ -15,6 +16,7 @@ export type MapProject = {
 		west: number;
 	} | null;
 	profile_id: string;
+	profile?: Profile;
 };
 
 export const MapProjectContext = createContext<{

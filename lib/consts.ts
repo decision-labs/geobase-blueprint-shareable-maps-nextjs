@@ -25,6 +25,10 @@ export const tools: {
 	// 	icon: "📎",
 	// 	tool: "attachment",
 	// },
+	{
+		icon: "🧽",
+		tool: "eraser",
+	},
 ];
 
 export const neighborhoodStyles: {

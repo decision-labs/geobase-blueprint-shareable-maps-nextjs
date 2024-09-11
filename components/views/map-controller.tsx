@@ -83,6 +83,9 @@ export function MapController({
 	const lastCursor = useRef<string | undefined>(undefined);
 	const [selectedTool, setSelectedTool] = useState<Tool>("hand");
 	const [isDrawing, setIsDrawing] = useState(false);
+	const [isErasing, setIsErasing] = useState(false);
+	const [featuresToErase, setFeaturesToErase] = useState<string[]>([]);
+	const featuresToEraseRef = useRef<string[]>([]);
 	const [annotationText, setAnnotationText] = useState("");
 	const [annotationPosition, setAnnotationPosition] = useState<LngLat>(new LngLat(0, 0));
 	const annotationInputRef = useRef<HTMLInputElement | null>(null);
@@ -122,6 +125,7 @@ export function MapController({
 		paint: {
 			"line-color": "#ff0000",
 			"line-width": 2,
+			"line-opacity": ["case", ["boolean", ["feature-state", "markedDelete"], false], 0.25, 1],
 		},
 	};
 
@@ -189,6 +193,10 @@ export function MapController({
 					<div className="w-8 h-8 text-4xl rotate-[60deg] translate-x-[10%] -translate-y-[150%]">{icon}</div>,
 				);
 				break;
+			case "eraser":
+				setCursor("none");
+				setCursorIcon(<div className="w-8 h-8 text-4xl -translate-x-1/2 -translate-y-1/2">{icon}</div>);
+				break;
 		}
 	}, [selectedTool]);
 
@@ -219,8 +227,8 @@ export function MapController({
 			mapRef.current.getMap().dragPan.enable();
 		} else if (selectedTool === "annotation") {
 			mapRef.current.getMap().dragPan.enable();
-		} else if (selectedTool === "attachment") {
-			mapRef.current.getMap().dragPan.enable();
+		} else if (selectedTool === "eraser") {
+			mapRef.current.getMap().dragPan.disable();
 		}
 	}, [selectedTool]);
 
@@ -247,7 +255,7 @@ export function MapController({
 		if (e.key === "2") setSelectedTool("draw");
 		if (e.key === "3") setSelectedTool("pin");
 		if (e.key === "4") setSelectedTool("annotation");
-		// if (e.key === "5") setSelectedTool("attachment");
+		if (e.key === "5") setSelectedTool("eraser");
 	};
 
 	const pushAnnotationToGeobase = async () => {
@@ -305,6 +313,10 @@ export function MapController({
 	useEffect(() => {
 		drawingCoordArray.current = activeDrawingGeoJson.features[0].geometry.coordinates as [number, number][];
 	}, [activeDrawingGeoJson]);
+
+	useEffect(() => {
+		featuresToEraseRef.current = featuresToErase;
+	}, [featuresToErase]);
 
 	useEffect(() => {
 		setActiveAnnotationGeoJson({
@@ -426,45 +438,83 @@ export function MapController({
 					},
 				],
 			});
+		} else if (selectedTool === "eraser" && isErasing) {
+			if (!mapRef.current) return;
+			const m = mapRef.current.getMap();
+			const features = m.queryRenderedFeatures(e.point, {
+				layers: ["drawings-layer", "pins-layer", "annotations-layer"],
+			});
+			if (features.length > 0) {
+				const featureId = `${features[0].layer.source} ${features[0].properties.id}`;
+				setFeaturesToErase((prev) => {
+					// Use a Set to ensure uniqueness
+					const uniqueFeatures = new Set(prev);
+					uniqueFeatures.add(featureId);
+					return Array.from(uniqueFeatures);
+				});
+				m.setFeatureState(
+					{
+						source: features[0].source,
+						sourceLayer: features[0].sourceLayer,
+						id: features[0].id,
+					},
+					{ markedDelete: true },
+				);
+			}
 		}
 	};
 
 	const mapMouseUp = async (e: MouseEvent) => {
-		setIsDrawing(false);
-		setActiveDrawingGeoJson({
-			type: "FeatureCollection",
-			features: [
-				{
-					type: "Feature",
-					geometry: {
-						type: "LineString",
-						coordinates: [],
+		if (selectedTool === "draw") {
+			setIsDrawing(false);
+			setActiveDrawingGeoJson({
+				type: "FeatureCollection",
+				features: [
+					{
+						type: "Feature",
+						geometry: {
+							type: "LineString",
+							coordinates: [],
+						},
+						properties: {},
 					},
-					properties: {},
-				},
-			],
-		});
-		window.removeEventListener("mouseup", mapMouseUp);
-
-		if (!mapProject || !geobase.sessionRef.current) return;
-
-		const { data, error } = await geobase.supabase.from("smb_drawings").insert([
-			{
-				shape: `LINESTRING(${drawingCoordArray.current.map((coord) => coord.join(" ")).join(",")})`,
-				meta: "",
-				project_id: mapProject.id,
-				profile_id: geobase.sessionRef.current.user.id,
-			},
-		]);
-
-		if (error) {
-			console.error("Error inserting drawing", error);
-			toast({
-				description: <span className="text-red-500">Failed to send drawing</span>,
+				],
 			});
-		} else {
+
+			if (!mapProject || !geobase.sessionRef.current) return;
+
+			const { data, error } = await geobase.supabase.from("smb_drawings").insert([
+				{
+					shape: `LINESTRING(${drawingCoordArray.current.map((coord) => coord.join(" ")).join(",")})`,
+					meta: "",
+					project_id: mapProject.id,
+					profile_id: geobase.sessionRef.current.user.id,
+				},
+			]);
+
+			if (error) {
+				console.error("Error inserting drawing", error);
+				toast({
+					description: <span className="text-red-500">Failed to send drawing</span>,
+				});
+			} else {
+				updateTiles(drawingsSourceConfig);
+			}
+		} else if (selectedTool === "eraser") {
+			setIsErasing(false);
+			for (const featureId of featuresToEraseRef.current) {
+				const [sourceId, featureIdStr] = featureId.split(" ");
+				const table = sourceId.replace("public.", "");
+				const id = parseInt(featureIdStr);
+				await deleteFeature(table, id);
+			}
+
 			updateTiles(drawingsSourceConfig);
+			updateTiles(pinsSourceConfig);
+			updateTiles(annotationsSourceConfig);
 		}
+
+		window.removeEventListener("mouseup", mapMouseUp);
 	};
 
 	const mapMouseDown = (e: MapLayerMouseEvent) => {
@@ -481,7 +531,21 @@ export function MapController({
 					},
 				],
 			});
-			window.addEventListener("mouseup", mapMouseUp);
+		} else if (selectedTool === "eraser") {
+			setIsErasing(true);
+		}
+		window.addEventListener("mouseup", mapMouseUp);
+	};
+
+	const deleteFeature = async (table: string, id: number) => {
+		if (!geobase.sessionRef.current) return;
+
+		const { error } = await geobase.supabase.from(table).delete().eq("id", id);
+		if (error) {
+			console.error(`Error deleting ${table} with id ${id}`, error);
+			toast({
+				description: <span className="text-red-500">Failed to erase features</span>,
+			});
 		}
 	};
 
@@ -594,6 +658,14 @@ export function MapController({
 								"icon-offset": [0, 10],
 								"icon-allow-overlap": true,
 							}}
+							paint={{
+								"icon-opacity": [
+									"case",
+									["boolean", ["feature-state", "markedDelete"], false],
+									0.25,
+									1,
+								],
+							}}
 						/>
 					</Source>
 					<Source type="geojson" data={activeAnnotationGeoJson} id="active-annotation">
@@ -629,6 +701,12 @@ export function MapController({
 								"text-color": "black",
 								"text-halo-color": "white",
 								"text-halo-width": 1,
+								"text-opacity": [
+									"case",
+									["boolean", ["feature-state", "markedDelete"], false],
+									0.25,
+									1,
+								],
 							}}
 						/>
 					</Source>

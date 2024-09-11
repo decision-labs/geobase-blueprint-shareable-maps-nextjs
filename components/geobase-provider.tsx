@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { MaterialSymbol } from "react-material-symbols";
-import { RequestTransformFunction } from "maplibre-gl";
 
 export type Profile = {
 	id: string;
@@ -62,15 +61,6 @@ export const GeobaseContext = createContext<GeobaseContextType>({
 
 export function handleAuthRedirects(auth: AuthSession | null, router: ReturnType<typeof useRouter>) {
 	if (
-		!auth &&
-		router.pathname !== "/sign-in" &&
-		router.pathname !== "/sign-up" &&
-		router.pathname !== "/reset-password" &&
-		router.pathname !== "/update-password"
-	) {
-		router.push("/sign-in");
-		return;
-	} else if (
 		auth &&
 		(router.pathname === "/sign-in" || router.pathname === "/sign-up" || router.pathname === "/reset-password")
 	) {

@@ -2,11 +2,9 @@ import { cn } from "@/lib/utils";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../ui/resizable";
 import Link from "next/link";
 import { MaterialSymbol } from "react-material-symbols";
-import { Button } from "../ui/button";
 import { MapMenu } from "./map-menu";
 import { ScrollArea } from "../ui/scroll-area";
 import { MapProject, useMapProject } from "../project-provider";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useGeobase } from "../geobase-provider";
 import { useToast } from "../ui/use-toast";
@@ -27,21 +25,31 @@ export function Sidebar({
 	const [mapPins, setMapItems] = useState<any[]>([]);
 
 	const fetchMapItems = async () => {
-		if (!geobase.sessionRef.current || !mapProject) return;
+		if (!mapProject) return;
 
-		let { data, error } = await geobase.supabase.from("smb_pins").select("meta").eq("project_id", mapProject.id);
+		let { data: pinsData, error: pinsError } = await geobase.supabase
+			.from("smb_pins")
+			.select("id, meta")
+			.eq("project_id", mapProject.id);
 
-		if (error) {
-			console.error("Error fetching map items", error);
+		let { data: annotationsData, error: annotationsError } = await geobase.supabase
+			.from("smb_annotations")
+			.select("id, meta")
+			.eq("project_id", mapProject.id);
+
+		if (pinsError || annotationsError) {
+			console.error("Error fetching map items", pinsError || annotationsError);
 			toast({
 				description: <span className="text-red-500">Could not fetch map items</span>,
 			});
 			return;
 		}
 
-		if (data) {
-			let items = data as any[];
-			setMapItems(items);
+		if (pinsData && annotationsData) {
+			let pins = pinsData.map((item) => ({ ...item, type: "pin" }));
+			let annotations = annotationsData.map((item) => ({ ...item, type: "annotation" }));
+			let allItems = [...pins, ...annotations];
+			setMapItems(allItems);
 		}
 	};
 
@@ -123,12 +131,14 @@ export function Sidebar({
 								{mapPins.length > 0 ? (
 									<div className="flex flex-col gap-2">
 										{mapPins.map((item, i) => (
-											<button
+											<div
 												key={i}
-												className="focus:outline-none flex items-center justify-between"
+												className="focus:outline-none flex items-center justify-between text-sm text-zinc-300"
 											>
-												📍 {getCoords(item.meta)}
-											</button>
+												{item.type === "pin"
+													? `📍 ${getCoords(item.meta)}`
+													: `💬 "${item.meta}"`}
+											</div>
 										))}
 									</div>
 								) : (
@@ -138,62 +148,64 @@ export function Sidebar({
 								)}
 							</ScrollArea>
 						</ResizablePanel>
-						<ResizableHandle withHandle />
+						{geobase.session ? <ResizableHandle withHandle /> : null}
 					</>
 				) : null}
-				<ResizablePanel order={2} key="map-list" id="map-list-panel" className="p-3 flex flex-col gap-1">
-					<h2 className="pb-2 flex items-center gap-4 justify-between text-sm font-semibold">
-						My Maps
-						<CreateMapDialog
-							variant="icon"
-							setShowSidebar={setShowSidebar}
-							showSidebar={showSidebar}
-							setShouldRefresh={setShouldRefresh}
-						/>
-					</h2>
-					<ScrollArea>
-						{userProjects.length > 0 ? (
-							<div className="flex flex-col gap-1">
-								{userProjects.map((project) => (
-									<div key={project.id} className="relative">
-										<Link
-											onClick={() => {
-												fetchUserProjects();
-											}}
-											href={`/maps/${project.uuid}`}
-											className={cn(
-												"rounded-lg border border-transparent dark:border-zinc-600/50 transition p-2 flex items-center gap-1 justify-between w-full pr-10",
-												mapProject && project.id === mapProject.id
-													? "bg-white/80 dark:bg-zinc-500/50"
-													: "bg-white/50 dark:bg-zinc-500/20 hover:bg-white/80 dark:hover:bg-zinc-500/40",
-											)}
-										>
-											{mapProject && project.id === mapProject.id ? (
-												mapProject.title
-											) : (
-												<>{project.title}</>
-											)}
-											{project.published ? (
-												<MaterialSymbol
-													title="Map published"
-													icon="public"
-													className="opacity-50 text-green-500"
-												/>
-											) : null}
-										</Link>
-										<MapMenu
-											project={{ ...project }}
-											setShouldRefresh={setShouldRefresh}
-											className="absolute right-1 -mr-px top-1/2 -translate-y-1/2"
-										/>
-									</div>
-								))}
-							</div>
-						) : (
-							<div className="text-sm opacity-50 w-full text-center">No maps yet</div>
-						)}
-					</ScrollArea>
-				</ResizablePanel>
+				{geobase.session ? (
+					<ResizablePanel order={2} key="map-list" id="map-list-panel" className="p-3 flex flex-col gap-1">
+						<h2 className="pb-2 flex items-center gap-4 justify-between text-sm font-semibold">
+							My Maps
+							<CreateMapDialog
+								variant="icon"
+								setShowSidebar={setShowSidebar}
+								showSidebar={showSidebar}
+								setShouldRefresh={setShouldRefresh}
+							/>
+						</h2>
+						<ScrollArea>
+							{userProjects.length > 0 ? (
+								<div className="flex flex-col gap-1">
+									{userProjects.map((project) => (
+										<div key={project.id} className="relative">
+											<Link
+												onClick={() => {
+													fetchUserProjects();
+												}}
+												href={`/maps/${project.uuid}`}
+												className={cn(
+													"rounded-lg border border-transparent dark:border-zinc-600/50 transition p-2 flex items-center gap-1 justify-between w-full pr-10",
+													mapProject && project.id === mapProject.id
+														? "bg-white/80 dark:bg-zinc-500/50"
+														: "bg-white/50 dark:bg-zinc-500/20 hover:bg-white/80 dark:hover:bg-zinc-500/40",
+												)}
+											>
+												{mapProject && project.id === mapProject.id ? (
+													mapProject.title
+												) : (
+													<>{project.title}</>
+												)}
+												{project.published ? (
+													<MaterialSymbol
+														title="Map published"
+														icon="public"
+														className="opacity-50 text-green-500"
+													/>
+												) : null}
+											</Link>
+											<MapMenu
+												project={{ ...project }}
+												setShouldRefresh={setShouldRefresh}
+												className="absolute right-1 -mr-px top-1/2 -translate-y-1/2"
+											/>
+										</div>
+									))}
+								</div>
+							) : (
+								<div className="text-sm opacity-50 w-full text-center">No maps yet</div>
+							)}
+						</ScrollArea>
+					</ResizablePanel>
+				) : null}
 			</ResizablePanelGroup>
 		</aside>
 	);

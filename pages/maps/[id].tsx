@@ -1,5 +1,5 @@
 import { MapProject, MapProjectContext, ProjectLayout } from "@/components/project-provider";
-import { useGeobase } from "@/components/geobase-provider";
+import { Profile, useGeobase } from "@/components/geobase-provider";
 import { useToast } from "@/components/ui/use-toast";
 import { MapController } from "@/components/views/map-controller";
 import { useRouter } from "next/router";
@@ -14,6 +14,21 @@ export default function MapPage() {
 	const [isFirstLoad, setIsFirstLoad] = useState(true);
 	const isLoading = useRef(true);
 
+	const fetchProfileData = async (profileId: string) => {
+		let { data, error } = await geobase.supabase.from("profiles").select("*").eq("id", profileId);
+
+		if (error) {
+			console.error(error);
+			return;
+		}
+
+		if (data && data.length > 0) {
+			return data[0] as Profile;
+		} else {
+			return undefined;
+		}
+	};
+
 	const fetchMapProject = async (uuid: string) => {
 		isLoading.current = true;
 		let { data, error } = await geobase.supabase.from("smb_map_projects").select("*").eq("uuid", uuid);
@@ -25,7 +40,17 @@ export default function MapPage() {
 
 		if (data && data.length > 0) {
 			isLoading.current = false;
-			return data[0] as MapProject;
+			console.log(data[0]);
+			const project = data[0] as MapProject;
+
+			const profile = await fetchProfileData(project.profile_id);
+			if (profile) {
+				project.profile = profile;
+			} else {
+				console.error("Profile not found for project:", project.profile_id);
+			}
+
+			return project;
 		} else {
 			isLoading.current = true;
 			return undefined;
@@ -38,6 +63,9 @@ export default function MapPage() {
 		if (uuid && !mapProject) {
 			fetchMapProject(uuid).then((project) => {
 				console.log("Project fetched:", project);
+				if (!project) {
+					router.push("/404");
+				}
 				setMapProject(project);
 			});
 		} else {
@@ -55,15 +83,11 @@ export default function MapPage() {
 			setIsFirstLoad(false);
 			setLoadingMessage("");
 
-			if (!geobase.profile) {
-				router.push("/404");
-				return;
-			}
-
 			const channelId = `smb_map_projects:${mapProject.id}`;
 			const channels = geobase.supabase
 				.channel(channelId)
 				.on("postgres_changes", { event: "*", schema: "public", table: "smb_map_projects" }, (payload) => {
+					// const profile = mapProject.profile;
 					const newProj = payload.new as MapProject;
 					setMapProject(newProj);
 				})

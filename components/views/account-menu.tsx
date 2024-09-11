@@ -14,15 +14,20 @@ import {
 import { useGeobase } from "../geobase-provider";
 import { useTheme } from "next-themes";
 import { useMapController } from "./map-controller";
+import { useMapProject } from "../project-provider";
+import { useRouter } from "next/router";
 
 export function AccountMenu({ setShowAccountDetails }: { setShowAccountDetails: (show: boolean) => void }) {
 	const geobase = useGeobase();
+	const router = useRouter();
 	const mapController = useMapController();
+	const { mapProject } = useMapProject();
 	const theme = useTheme();
 	const signOut = async () => {
 		if (mapController) {
 			mapController.setLoadingMessage("Signing out...");
 			await geobase.supabase.auth.signOut();
+			router.push("/sign-in");
 			mapController.setLoadingMessage("");
 		}
 	};
@@ -32,7 +37,15 @@ export function AccountMenu({ setShowAccountDetails }: { setShowAccountDetails: 
 			<DropdownMenuTrigger asChild>
 				<button className="shadow-sm hover:opacity-80 rounded-full">
 					<Avatar className="h-7 w-7">
-						<AvatarImage src={geobase.profile?.photo_url} alt="Avatar" className="object-cover" />
+						<AvatarImage
+							src={
+								mapProject && mapProject.profile
+									? mapProject.profile.photo_url
+									: geobase.profile?.photo_url
+							}
+							alt="Avatar"
+							className="object-cover"
+						/>
 						<AvatarFallback>
 							<MaterialSymbol icon="person" size={20} fill className="opacity-50" />
 						</AvatarFallback>
@@ -44,7 +57,7 @@ export function AccountMenu({ setShowAccountDetails }: { setShowAccountDetails: 
 					className="gap-2 items-center font-semibold"
 					onClick={() => setShowAccountDetails(true)}
 				>
-					{geobase.session?.user?.email}
+					{mapProject && mapProject.profile ? mapProject.profile.nickname : geobase.session?.user?.email}
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuSub>
@@ -70,10 +83,22 @@ export function AccountMenu({ setShowAccountDetails }: { setShowAccountDetails: 
 					</DropdownMenuPortal>
 				</DropdownMenuSub>
 				<DropdownMenuSeparator />
-				<DropdownMenuItem className="gap-2 items-center text-red-500 hover:!text-red-500" onClick={signOut}>
-					<MaterialSymbol icon="exit_to_app" size={16} className="" />
-					Sign out
-				</DropdownMenuItem>
+				{geobase.session ? (
+					<DropdownMenuItem className="gap-2 items-center text-red-500 hover:!text-red-500" onClick={signOut}>
+						<MaterialSymbol icon="exit_to_app" size={16} className="" />
+						Sign out
+					</DropdownMenuItem>
+				) : (
+					<DropdownMenuItem
+						className="gap-2 items-center"
+						onClick={() => {
+							router.push("/sign-in");
+						}}
+					>
+						<MaterialSymbol icon="login" size={16} className="" />
+						Sign in
+					</DropdownMenuItem>
+				)}
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

@@ -1,8 +1,10 @@
+import { useGeobase } from "@/components/geobase-provider";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/router";
 
 export default function NotFound() {
 	const router = useRouter();
+	const geobase = useGeobase();
 	return (
 		<main
 			className={`flex min-h-screen h-full w-full items-center justify-center bg-gradient-to-t from-blue-300 to-white dark:from-zinc-900 dark:to-zinc-950`}
@@ -12,10 +14,14 @@ export default function NotFound() {
 				<p className={`text-center`}>The map or page you are looking for does not exist.</p>
 				<Button
 					onClick={() => {
-						router.push("/");
+						if (geobase.sessionRef.current) {
+							router.push("/");
+						} else {
+							router.push("/sign-in");
+						}
 					}}
 				>
-					Create a new map
+					{geobase.sessionRef.current ? "Create a new map" : "Sign in"}
 				</Button>
 			</div>
 		</main>

@@ -114,7 +114,7 @@ export function MapUI() {
 				{mapProject ? (
 					<div className="flex flex-col items-center gap-0.5 justify-center">
 						<div className="w-48">
-							{isEditingTitle ? (
+							{isEditingTitle && geobase.session ? (
 								<input
 									type="text"
 									value={title}
@@ -136,7 +136,7 @@ export function MapUI() {
 							)}
 						</div>
 						<div className="w-48">
-							{isEditingDescription ? (
+							{isEditingDescription && geobase.session ? (
 								<input
 									type="text"
 									value={description}
@@ -177,7 +177,7 @@ export function MapUI() {
 				) : null}
 			</header>
 			<Sidebar showSidebar={showSidebar} setShowSidebar={setShowSidebar} />
-			<Toolbar />
+			{geobase.session ? <Toolbar /> : null}
 			<AccountDetails showAccountDetails={showAccountDetails} setShowAccountDetails={setShowAccountDetails} />
 		</>
 	);

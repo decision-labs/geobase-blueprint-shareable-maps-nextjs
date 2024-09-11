@@ -4,7 +4,7 @@ import { MaterialSymbol } from "react-material-symbols";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { useGeobase } from "../geobase-provider";
 import { useEffect, useState } from "react";
-import { MapProject } from "../project-provider";
+import { MapProject, useMapProject } from "../project-provider";
 import { useToast } from "../ui/use-toast";
 
 export function AccountDetails({
@@ -17,13 +17,21 @@ export function AccountDetails({
 	const geobase = useGeobase();
 	const { toast } = useToast();
 	const [mapCount, setMapCount] = useState(0);
+	const { mapProject } = useMapProject();
 
 	const fetchMapCount = async () => {
-		if (!geobase.sessionRef.current) return;
 		let { data, error } = await geobase.supabase
 			.from("smb_map_projects")
 			.select("id")
-			.eq("profile_id", geobase.sessionRef.current.user.id);
+			.eq("published", true)
+			.eq(
+				"profile_id",
+				mapProject && mapProject.profile
+					? mapProject.profile.id
+					: geobase.sessionRef.current
+						? geobase.sessionRef.current.user.id
+						: "",
+			);
 
 		if (error) {
 			console.error("Error fetching user projects", error);
@@ -60,29 +68,6 @@ export function AccountDetails({
 					});
 					return;
 				}
-
-				// if (geobase.profile.photo_url) {
-				// 	const { data, error } = await geobase.supabase.storage
-				// 		.from("avatars")
-				// 		.remove([
-				// 			geobase.profile.photo_url.replace(
-				// 				`${geobase.baseUrl}/storage/v1/object/public/avatars/`,
-				// 				"",
-				// 			),
-				// 		]);
-
-				// 	console.log(data, error);
-
-				// 	if (error) {
-				// 		console.error("Error removing avatar", error);
-				// 		toast({
-				// 			description: (
-				// 				<span className="text-red-500">Failed to update avatar. Please try again later.</span>
-				// 			),
-				// 		});
-				// 		return;
-				// 	}
-				// }
 
 				const { data, error } = await geobase.supabase.storage.from("avatars").upload(filename, filebody, {
 					cacheControl: "3600",
@@ -154,11 +139,21 @@ export function AccountDetails({
 				<MaterialSymbol icon="close" size={20} />
 			</Button>
 			<button
-				className="rounded-full w-fit hover:opacity-80 group relative hover:bg-white/50 dark:hover:bg-white/10 transition"
+				className={cn(
+					"rounded-full w-fit hover:opacity-80 group relative hover:bg-white/50 dark:hover:bg-white/10 transition",
+					geobase.session ? "" : "pointer-events-none",
+				)}
+				disabled={!geobase.session}
 				onClick={uploadAvatar}
 			>
 				<Avatar className="h-32 w-32">
-					<AvatarImage src={geobase.profile?.photo_url} alt="Avatar" className="object-cover" />
+					<AvatarImage
+						src={
+							mapProject && mapProject.profile ? mapProject.profile.photo_url : geobase.profile?.photo_url
+						}
+						alt="Avatar"
+						className="object-cover"
+					/>
 					<AvatarFallback>
 						<MaterialSymbol icon="person" size={96} fill className="opacity-20" />
 					</AvatarFallback>
@@ -169,9 +164,13 @@ export function AccountDetails({
 					className="absolute top-1/2 left-1/2 opacity-0 -translate-x-1/2 -translate-y-1/2 group-hover:opacity-100 transition"
 				/>
 			</button>
-			<h2 className="text-lg mt-2">{geobase.profile?.nickname}</h2>
-			<p className="text-sm opacity-60">{geobase.session?.user.email}</p>
-			<p className="text-sm opacity-60">{mapCount} Maps Created</p>
+			<h2 className="text-lg mt-2">
+				{mapProject && mapProject.profile ? mapProject.profile.nickname : geobase.profile?.nickname}
+			</h2>
+			<p className="text-sm opacity-60">
+				{mapProject && mapProject.profile ? mapProject.profile.email : geobase.session?.user.email}
+			</p>
+			<p className="text-sm opacity-60">{mapCount} Maps Published</p>
 		</aside>
 	);
 }
