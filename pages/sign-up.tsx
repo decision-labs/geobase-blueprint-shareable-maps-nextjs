@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useContext, useEffect, useState } from "react";
-import { GeobaseContext, useGeobase } from "@/components/geobase-provider";
+import { GeobaseContext, useGeobase } from "@/components/providers/geobase-provider";
 import { MaterialSymbol } from "react-material-symbols";
 import { Spinner } from "@/components/ui/spinner";
 

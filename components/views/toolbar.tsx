@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { useContext } from "react";
 import { tools } from "@/lib/consts";
 import { useMapController } from "./map-controller";
-import { useMapProject } from "../project-provider";
+import { useMapProject } from "@/components/providers/project-provider";
 
 export type Tool = "hand" | "draw" | "pin" | "annotation" | "attachment" | "eraser";
 

@@ -11,10 +11,10 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useGeobase } from "../geobase-provider";
+import { useGeobase } from "@/components/providers/geobase-provider";
 import { useTheme } from "next-themes";
 import { useMapController } from "./map-controller";
-import { useMapProject } from "../project-provider";
+import { useMapProject } from "@/components/providers/project-provider";
 import { useRouter } from "next/router";
 
 export function AccountMenu({ setShowAccountDetails }: { setShowAccountDetails: (show: boolean) => void }) {

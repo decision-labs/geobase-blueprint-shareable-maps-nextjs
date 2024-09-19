@@ -6,10 +6,10 @@ import { useContext, useEffect, useState } from "react";
 import { Tool, Toolbar } from "./toolbar";
 import { Sidebar } from "./sidebar";
 import { AccountDetails } from "./account-details";
-import { useMapProject } from "../project-provider";
+import { useMapProject } from "@/components/providers/project-provider";
 import { useMapController } from "./map-controller";
 import { CreateMapDialog } from "./create-map-dialog";
-import { useGeobase } from "../geobase-provider";
+import { useGeobase } from "@/components/providers/geobase-provider";
 import { useToast } from "../ui/use-toast";
 
 export function MapUI() {

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from "react";
-import { Profile } from "./geobase-provider";
+import { Profile } from "@/components/providers/geobase-provider";
 
 export type MapProject = {
 	id?: number;

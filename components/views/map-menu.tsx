@@ -20,9 +20,9 @@ import {
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { useEffect, useRef, useState } from "react";
-import { MapProject, useMapProject } from "../project-provider";
+import { MapProject, useMapProject } from "@/components/providers/project-provider";
 import { useRouter } from "next/router";
-import { useGeobase } from "../geobase-provider";
+import { useGeobase } from "@/components/providers/geobase-provider";
 import { useToast } from "../ui/use-toast";
 import { useMapController } from "./map-controller";
 import { Switch } from "../ui/switch";

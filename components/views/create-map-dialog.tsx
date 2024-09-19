@@ -12,8 +12,8 @@ import {
 } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { useGeobase } from "../geobase-provider";
-import { MapProject } from "../project-provider";
+import { useGeobase } from "@/components/providers/geobase-provider";
+import { MapProject } from "@/components/providers/project-provider";
 import { createUUID } from "@/lib/utils";
 import { useToast } from "../ui/use-toast";
 import { useRouter } from "next/router";

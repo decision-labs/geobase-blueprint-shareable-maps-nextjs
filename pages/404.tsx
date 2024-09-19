@@ -1,4 +1,4 @@
-import { useGeobase } from "@/components/geobase-provider";
+import { useGeobase } from "@/components/providers/geobase-provider";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/router";
 

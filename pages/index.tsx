@@ -1,5 +1,5 @@
-import { MapProject, MapProjectContext, ProjectLayout } from "@/components/project-provider";
-import { useGeobase } from "@/components/geobase-provider";
+import { MapProject, MapProjectContext, ProjectLayout } from "@/components/providers/project-provider";
+import { useGeobase } from "@/components/providers/geobase-provider";
 import { MapController } from "@/components/views/map-controller";
 import { createUUID } from "@/lib/utils";
 import { useRouter } from "next/router";

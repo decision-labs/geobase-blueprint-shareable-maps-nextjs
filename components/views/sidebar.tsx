@@ -4,9 +4,9 @@ import Link from "next/link";
 import { MaterialSymbol } from "react-material-symbols";
 import { MapMenu } from "./map-menu";
 import { ScrollArea } from "../ui/scroll-area";
-import { MapProject, useMapProject } from "../project-provider";
+import { MapProject, useMapProject } from "@/components/providers/project-provider";
 import { useEffect, useState } from "react";
-import { useGeobase } from "../geobase-provider";
+import { useGeobase } from "@/components/providers/geobase-provider";
 import { useToast } from "../ui/use-toast";
 import { CreateMapDialog } from "./create-map-dialog";
 
@@ -133,7 +133,7 @@ export function Sidebar({
 										{mapPins.map((item, i) => (
 											<div
 												key={i}
-												className="focus:outline-none flex items-center justify-between text-sm text-zinc-300"
+												className="focus:outline-none flex items-center justify-between text-sm text-zinc-600 dark:text-zinc-300"
 											>
 												{item.type === "pin"
 													? `📍 ${getCoords(item.meta)}`

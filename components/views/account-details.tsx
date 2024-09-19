@@ -2,9 +2,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { MaterialSymbol } from "react-material-symbols";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { useGeobase } from "../geobase-provider";
+import { useGeobase } from "@/components/providers/geobase-provider";
 import { useEffect, useState } from "react";
-import { MapProject, useMapProject } from "../project-provider";
+import { MapProject, useMapProject } from "@/components/providers/project-provider";
 import { useToast } from "../ui/use-toast";
 
 export function AccountDetails({
