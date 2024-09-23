@@ -53,13 +53,19 @@ export function AccountMenu({ setShowAccountDetails }: { setShowAccountDetails: 
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent className="w-56" align="start" side="right" sideOffset={20} alignOffset={-15}>
-				<DropdownMenuItem
-					className="gap-2 items-center font-semibold"
-					onClick={() => setShowAccountDetails(true)}
-				>
-					{mapProject && mapProject.profile ? mapProject.profile.nickname : geobase.session?.user?.email}
-				</DropdownMenuItem>
-				<DropdownMenuSeparator />
+				{router.pathname === "/" && !geobase.session ? null : (
+					<>
+						<DropdownMenuItem
+							className="gap-2 items-center font-semibold"
+							onClick={() => setShowAccountDetails(true)}
+						>
+							{mapProject && mapProject.profile
+								? mapProject.profile.nickname
+								: geobase.session?.user?.email}
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
+					</>
+				)}
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger className="gap-2 items-center capitalize">
 						<MaterialSymbol icon="settings" size={16} className="" />

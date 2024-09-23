@@ -60,6 +60,8 @@ create index on public.smb_map_projects (published);
 
 alter table public.smb_map_projects enable row level security;
 
+alter PUBLICATION supabase_realtime add table public.smb_map_projects;
+
 -- Not authed, only published projects are visible
 create policy "Allow public map read access" on public.smb_map_projects
   for select using (published);
@@ -260,6 +262,14 @@ FOR EACH ROW EXECUTE FUNCTION public.update_project_bounds();
 CREATE TRIGGER update_bounds_on_attachment_change
 AFTER INSERT OR DELETE ON public.smb_attachments
 FOR EACH ROW EXECUTE FUNCTION public.update_project_bounds();
+
+--
+-- Create avatar bucket
+--
+
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true);
+
 
 --
 -- Avatar bucket policy
