@@ -79,15 +79,11 @@ The components in all React blueprints are made with [shadcn/ui](https://ui.shad
 
 We've separated all components into 3 main categories:
 
--   `ui`: This is where all the shadcn/ui and base components are.
+-   `ui`: This is where all the shadcn/ui and other base components are.
 -   `views`: These are compositions of the ui components that have a user flow in mind.
 -   `providers`: These are the components that provide state and utility functions.
 
-These are not strict rules but rather a guideline to help you understand the project structure.
-
-### Authentication Flow
-
-@TODO: Add authentication flow explanation
+These are not strict rules but rather guidelines to help you understand the project structure.
 
 ## Learn More
 
