@@ -69,8 +69,6 @@ The easiest way to deploy this blueprint app is to use the Vercel Platform from 
 
 Check out the [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
 
-@TODO: Link to quick video
-
 ## Blueprint Structure
 
 The components in all React blueprints are made with [shadcn/ui](https://ui.shadcn.com/). This makes it easy for you to customize and extend the existing code based on your project needs. This also means it's easier to use different components from other blueprints given they are made with the same tools - shadcn/ui, tailwindcss, react, etc.
