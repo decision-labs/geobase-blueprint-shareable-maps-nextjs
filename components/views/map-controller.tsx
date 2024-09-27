@@ -1,4 +1,4 @@
-import { neighborhoodStyles, tools } from "@/lib/consts";
+import { drawingCopyLayerStyles, drawingLayerStyles, neighborhoodStyles, tools } from "@/lib/consts";
 import { useTheme } from "next-themes";
 import Map, {
 	Layer,
@@ -93,6 +93,7 @@ export function MapController({
 	const [cursorIcon, setCursorIcon] = useState<React.ReactNode>(null);
 	const drawingCoordArray = useRef<number[][]>([]);
 	const canUseTools = useRef(true);
+	const isLoadingDrawingTile = useRef(false);
 	const [initialViewState, setInitialViewState] = useState<MapViewState>({
 		latitude: 50.0,
 		longitude: 15.0,
@@ -117,17 +118,11 @@ export function MapController({
 		],
 	});
 
-	const drawingStyles: Omit<LineLayerSpecification, "id" | "source" | "type"> = {
-		layout: {
-			"line-cap": "round",
-			"line-join": "round",
-		},
-		paint: {
-			"line-color": "#ff0000",
-			"line-width": 2,
-			"line-opacity": ["case", ["boolean", ["feature-state", "markedDelete"], false], 0.25, 1],
-		},
-	};
+	const [drawingStyles, setDrawingStyles] =
+		useState<Omit<LineLayerSpecification, "id" | "source" | "type">>(drawingLayerStyles);
+
+	const [copyDrawingStyles, setCopyDrawingStyles] =
+		useState<Omit<LineLayerSpecification, "id" | "source" | "type">>(drawingCopyLayerStyles);
 
 	const pinsSourceConfig: TileSourceConfig = {
 		id: "public.smb_pins",
@@ -150,6 +145,18 @@ export function MapController({
 		],
 		params: {
 			filter: `project_id=${mapProject ? mapProject.id : -1}`,
+		},
+	};
+
+	const drawingsCopySourceConfig: TileSourceConfig = {
+		id: "public.smb_drawings.copy",
+		tiles: [
+			getMapTileURL("public.smb_drawings", {
+				filter: `id=-1`,
+			}),
+		],
+		params: {
+			filter: `id=-1`,
 		},
 	};
 
@@ -210,10 +217,11 @@ export function MapController({
 
 		if (isFirstLoad) {
 			recenter();
+
+			updateTiles(pinsSourceConfig);
+			updateTiles(drawingsSourceConfig);
+			updateTiles(annotationsSourceConfig);
 		}
-		updateTiles(pinsSourceConfig);
-		updateTiles(drawingsSourceConfig);
-		updateTiles(annotationsSourceConfig);
 	}, [mapProject]);
 
 	useEffect(() => {
@@ -284,8 +292,6 @@ export function MapController({
 			toast({
 				description: <span className="text-red-500">Failed to insert annotation</span>,
 			});
-		} else {
-			updateTiles(annotationsSourceConfig);
 		}
 
 		setAnnotationText("");
@@ -345,6 +351,45 @@ export function MapController({
 		m.addImage("pin", pin.data);
 		// m.addImage("attachment", attachment.data);
 		m.addImage("annotation", annotation.data);
+
+		m.on("sourcedataloading", (e) => {
+			if (e.sourceId === "public.smb_drawings.copy" && !e.tile && !isLoadingDrawingTile.current) {
+				console.log("tile load start");
+				isLoadingDrawingTile.current = true;
+			}
+		});
+
+		m.on("sourcedata", (e) => {
+			// if (e.sourceId === "public.smb_drawings" && e.tile) {
+			// 	console.log(e.tile.state);
+			// }
+			if (
+				e.sourceId === "public.smb_drawings.copy" &&
+				e.tile &&
+				e.tile.state === "loaded" &&
+				isLoadingDrawingTile.current
+			) {
+				console.log("tile load end");
+				isLoadingDrawingTile.current = false;
+
+				setActiveDrawingGeoJson({
+					type: "FeatureCollection",
+					features: [
+						{
+							type: "Feature",
+							geometry: {
+								type: "LineString",
+								coordinates: [],
+							},
+							properties: {},
+						},
+					],
+				});
+
+				setCopyDrawingStyles(drawingLayerStyles);
+				setDrawingStyles(drawingCopyLayerStyles);
+			}
+		});
 	};
 
 	const mapMove = (event: ViewStateChangeEvent) => {
@@ -392,8 +437,6 @@ export function MapController({
 				toast({
 					description: <span className="text-red-500">Failed to insert pin</span>,
 				});
-			} else {
-				updateTiles(pinsSourceConfig);
 			}
 		} else if (selectedTool === "annotation") {
 			const placeholder = "New annotation";
@@ -467,38 +510,37 @@ export function MapController({
 	const mapMouseUp = async (e: MouseEvent) => {
 		if (selectedTool === "draw") {
 			setIsDrawing(false);
-			setActiveDrawingGeoJson({
-				type: "FeatureCollection",
-				features: [
-					{
-						type: "Feature",
-						geometry: {
-							type: "LineString",
-							coordinates: [],
-						},
-						properties: {},
-					},
-				],
-			});
 
 			if (!mapProject || !geobase.sessionRef.current) return;
 
-			const { data, error } = await geobase.supabase.from("smb_drawings").insert([
-				{
-					shape: `LINESTRING(${drawingCoordArray.current.map((coord) => coord.join(" ")).join(",")})`,
-					meta: "",
-					project_id: mapProject.id,
-					profile_id: geobase.sessionRef.current.user.id,
-				},
-			]);
+			const { data, error } = await geobase.supabase
+				.from("smb_drawings")
+				.insert([
+					{
+						shape: `LINESTRING(${drawingCoordArray.current.map((coord) => coord.join(" ")).join(",")})`,
+						meta: "",
+						project_id: mapProject.id,
+						profile_id: geobase.sessionRef.current.user.id,
+					},
+				])
+				.select();
 
 			if (error) {
 				console.error("Error inserting drawing", error);
 				toast({
 					description: <span className="text-red-500">Failed to send drawing</span>,
 				});
-			} else {
-				updateTiles(drawingsSourceConfig);
+			} else if (data && data[0]) {
+				const drawing_id = data[0].id;
+
+				if (!mapRef.current || !mapProject) return;
+				const mapClient = mapRef.current.getMap();
+
+				const source = mapClient.getSource("public.smb_drawings.copy");
+				if (source) {
+					// @ts-ignore
+					source.setTiles([getMapTileURL("public.smb_drawings", drawingsSourceConfig.params)]);
+				}
 			}
 		} else if (selectedTool === "eraser") {
 			setIsErasing(false);
@@ -508,10 +550,6 @@ export function MapController({
 				const id = parseInt(featureIdStr);
 				await deleteFeature(table, id);
 			}
-
-			updateTiles(drawingsSourceConfig);
-			updateTiles(pinsSourceConfig);
-			updateTiles(annotationsSourceConfig);
 		}
 
 		window.removeEventListener("mouseup", mapMouseUp);
@@ -599,6 +637,7 @@ export function MapController({
 				mapStyle={theme.resolvedTheme === "dark" ? neighborhoodStyles.dark : neighborhoodStyles.light}
 				initialViewState={initialViewState}
 				onLoad={mapLoad}
+				// maxTileCacheSize={0}
 				onMouseUp={() => setIsMouseDown(false)}
 				onMouseDown={mapMouseDown}
 				onMouseMove={mapMouseMove}
@@ -634,7 +673,7 @@ export function MapController({
 								id: "drawing",
 								type: "line",
 								source: "active-drawing-source",
-								...drawingStyles,
+								...drawingLayerStyles,
 							}}
 						/>
 					</Source>
@@ -644,6 +683,14 @@ export function MapController({
 							type="line"
 							source-layer={drawingsSourceConfig.id}
 							{...drawingStyles}
+						/>
+					</Source>
+					<Source type="vector" {...drawingsCopySourceConfig}>
+						<Layer
+							id="drawings-layer-copy"
+							type="line"
+							source-layer={drawingsSourceConfig.id}
+							{...copyDrawingStyles}
 						/>
 					</Source>
 					<Source type="vector" {...pinsSourceConfig}>

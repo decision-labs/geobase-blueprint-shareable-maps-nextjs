@@ -1,5 +1,5 @@
 import { Tool } from "@/components/views/toolbar";
-import { StyleSpecification } from "maplibre-gl";
+import { LineLayerSpecification, StyleSpecification } from "maplibre-gl";
 
 export const tools: {
 	icon: string;
@@ -30,6 +30,30 @@ export const tools: {
 		tool: "eraser",
 	},
 ];
+
+export const drawingLayerStyles: Omit<LineLayerSpecification, "id" | "source" | "type"> = {
+	layout: {
+		"line-cap": "round",
+		"line-join": "round",
+	},
+	paint: {
+		"line-color": "#ff0000",
+		"line-width": 2,
+		"line-opacity": ["case", ["boolean", ["feature-state", "markedDelete"], false], 0.25, 1],
+	},
+};
+
+export const drawingCopyLayerStyles: Omit<LineLayerSpecification, "id" | "source" | "type"> = {
+	layout: {
+		"line-cap": "round",
+		"line-join": "round",
+	},
+	paint: {
+		"line-color": "#ff0000",
+		"line-width": 2,
+		"line-opacity": 0,
+	},
+};
 
 export const neighborhoodStyles: {
 	light: StyleSpecification;
