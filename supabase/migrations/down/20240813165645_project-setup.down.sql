@@ -7,26 +7,29 @@ DROP TRIGGER IF EXISTS update_bounds_on_drawing_change ON public.smb_drawings;
 -- Drop function
 DROP FUNCTION IF EXISTS public.update_project_bounds();
 
--- Drop tables
-DROP TABLE IF EXISTS public.smb_attachments CASCADE;
-DROP TABLE IF EXISTS public.smb_annotations CASCADE;
-DROP TABLE IF EXISTS public.smb_pins CASCADE;
-DROP TABLE IF EXISTS public.smb_drawings CASCADE;
-DROP TABLE IF EXISTS public.smb_map_projects CASCADE;
+-- Remove avatar bucket policies
+DROP POLICY IF EXISTS "Give users update access to own folder in avatars bucket" ON storage.objects;
+DROP POLICY IF EXISTS "Give users delete access to own folder in avatars bucket" ON storage.objects;
+DROP POLICY IF EXISTS "Give users insert access to own folder in avatars bucket" ON storage.objects;
+DROP POLICY IF EXISTS "Give users select access to own folder in avatars bucket" ON storage.objects;
+DROP POLICY IF EXISTS "Give anon users access to avatars bucket" ON storage.objects;
 
--- Drop trigger and function for handling new users
+-- Remove avatar bucket
+DELETE FROM storage.buckets WHERE id = 'avatars';
+
+-- Drop tables
+DROP TABLE IF EXISTS public.smb_attachments;
+DROP TABLE IF EXISTS public.smb_annotations;
+DROP TABLE IF EXISTS public.smb_pins;
+DROP TABLE IF EXISTS public.smb_drawings;
+DROP TABLE IF EXISTS public.smb_map_projects;
+
+-- Remove trigger and function for handling new users
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user();
 
 -- Drop profiles table
-DROP TABLE IF EXISTS public.profiles CASCADE;
+DROP TABLE IF EXISTS public.profiles;
 
--- Remove storage policies
-DO $$
-DECLARE
-    r RECORD;
-BEGIN
-    FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'objects' AND schemaname = 'storage') LOOP
-        EXECUTE 'DROP POLICY IF EXISTS "' || r.policyname || '" ON storage.objects';
-    END LOOP;
-END $$;
+-- Remove publication
+ALTER PUBLICATION IF EXISTS supabase_realtime DROP TABLE IF EXISTS public.smb_map_projects;
