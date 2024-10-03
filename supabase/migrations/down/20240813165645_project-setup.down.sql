@@ -15,7 +15,11 @@ DROP POLICY IF EXISTS "Give users select access to own folder in avatars bucket"
 DROP POLICY IF EXISTS "Give anon users access to avatars bucket" ON storage.objects;
 
 -- Remove avatar bucket
+DELETE FROM storage.objects WHERE bucket_id = 'avatars';
 DELETE FROM storage.buckets WHERE id = 'avatars';
+
+-- Remove publication
+ALTER PUBLICATION supabase_realtime DROP TABLE public.smb_map_projects;
 
 -- Drop tables
 DROP TABLE IF EXISTS public.smb_attachments;
@@ -31,5 +35,4 @@ DROP FUNCTION IF EXISTS public.handle_new_user();
 -- Drop profiles table
 DROP TABLE IF EXISTS public.profiles;
 
--- Remove publication
-ALTER PUBLICATION IF EXISTS supabase_realtime DROP TABLE IF EXISTS public.smb_map_projects;
+
