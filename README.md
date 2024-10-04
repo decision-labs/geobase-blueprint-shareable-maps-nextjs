@@ -63,6 +63,13 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the blueprint in action.
 
+### Running Migrations
+
+```bash
+DATABASE_URI=postgresql://supabase_admin:CqKqTu3il7eRUNQN@wimetlhkmazqwykxrqbw.geobase.app:6443/postgres
+psql $DATABASE_URI -f supabase/migrations/20240813165645_project-setup.sql
+```
+
 ## Deployment
 
 The easiest way to deploy this blueprint app is to use the Vercel Platform from the creators of Next.js.
