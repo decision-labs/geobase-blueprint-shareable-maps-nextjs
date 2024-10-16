@@ -121,6 +121,8 @@ Row Level Security is implemented for all tables to ensure data privacy and acce
 
 The components in all React blueprints are made with [shadcn/ui](https://ui.shadcn.com/). This makes it easy for you to customize and extend the existing code based on your project needs. This also means it's easier to use different components from other blueprints given they are made with the same tools - shadcn/ui, tailwindcss, react, etc.
 
+[🎥 Take a look at the blueprint overview video](https://www.youtube.com/watch?v=vcWFdXGpZD0)
+
 ### Component Structure
 
 We've separated all components into 3 main categories:
