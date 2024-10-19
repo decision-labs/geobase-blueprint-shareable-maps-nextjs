@@ -67,7 +67,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Migration
 
-### Using `psql` version compatible with your Geobase project (postgres 14 or 15)
+### Option 1: Using `psql` version compatible with your Geobase project (postgres 14 or 15)
 
 ```sh
 # set the database uri in your environment, you can get it from the geobase project settings page
@@ -75,7 +75,7 @@ DATABASE_URI=<your-database-uri>
 psql -d $DATABASE_URI -f geobase/migrations/20240813165645_project-setup.sql
 ```
 
-### Manually via the studio
+### Option 2: Manually via the studio
 
 1. Go to the studio
 2. Navigate to the SQL Editor page
