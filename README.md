@@ -84,7 +84,7 @@ psql -d $DATABASE_URI -f geobase/migrations/20240813165645_project-setup.sql
 
 ## Github auth provider
 
-**1. Enable Github Provider:** Go to the Authentication tab in the studio. Then select Providers and select Github.
+**1. In studio: Enable Github Provider:** Go to the Authentication tab in the studio. Then select Providers and select Github.
 
 <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://d2w9rnfcy7mm78.cloudfront.net/31546330/original_3b18b9f77ad2572fb987b6dd1757d1b5.png?1729340128?bc=0">
@@ -93,7 +93,7 @@ psql -d $DATABASE_URI -f geobase/migrations/20240813165645_project-setup.sql
 </picture>
 
 
-**2. Create a Github OAuth App:** Go to Github and create a new OAuth app. You can use the callback url provided in the Github Providers tab in the studio.
+**2. On Gitub: Create a Github OAuth App:** Go to Github developer settings (https://github.com/settings/developers) and create a new OAuth app and set the callback url to the url in the studio auth providers tab. Also grab the client id and client secret. You will need it for the next step.
 
 <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://d2w9rnfcy7mm78.cloudfront.net/31546396/original_bf7559b00306b732ca29bca9fc2f75e8.png?1729340677?bc=0">
@@ -101,7 +101,7 @@ psql -d $DATABASE_URI -f geobase/migrations/20240813165645_project-setup.sql
     <img alt="github oauth app" src="https://d2w9rnfcy7mm78.cloudfront.net/31546415/original_6a5177dd66067718214c014bb7a5d9a9.png?1729340785?bc=0">
 </picture>
 
-**3.  On github apps:** Add the credentials into the Github tab in the studio.
+**3. Back in the studio:** Add the credentials into the Github tab in the studio which you find from the github app you just created.
 
 ## Deployment
 
