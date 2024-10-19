@@ -78,7 +78,7 @@ psql -d $DATABASE_URI -f geobase/migrations/20240813165645_project-setup.sql
 ### Manually via the studio
 
 1. Go to the studio
-2. Navigate to the Editor page
+2. Navigate to the SQL Editor page
 3. Copy the contents of the [setup migration file](geobase/migrations/20240813165645_project-setup.sql)
 4. Click run.
 
