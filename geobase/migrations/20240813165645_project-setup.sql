@@ -85,6 +85,7 @@ public.smb_drawings (
 	project_id bigint not null references public.smb_map_projects(id) on delete cascade
 );
 
+create index on public.smb_drawings using gist (shape);
 alter table public.smb_drawings enable row level security;
 
 -- Allow read access if the drawing's project is published
@@ -110,6 +111,7 @@ public.smb_pins (
 	project_id bigint not null references public.smb_map_projects(id) on delete cascade
 );
 
+create index on public.smb_pins using gist (shape);
 alter table public.smb_pins enable row level security;
 
 -- Allow read access if the pin's project is published
@@ -135,6 +137,7 @@ public.smb_annotations (
 	project_id bigint not null references public.smb_map_projects(id) on delete cascade
 );
 
+create index on public.smb_annotations using gist (shape);
 alter table public.smb_annotations enable row level security;
 
 -- Allow read access if the annotation's project is published
@@ -160,6 +163,7 @@ public.smb_attachments (
 	project_id bigint not null references public.smb_map_projects(id) on delete cascade
 );
 
+create index on public.smb_attachments using gist (shape);
 alter table public.smb_attachments enable row level security;
 
 -- Allow read access if the attachment's project is published
