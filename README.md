@@ -71,7 +71,7 @@ Check out the [Next.js deployment documentation](https://nextjs.org/docs/deploym
 
 ## Database Overview
 
-A good summary of how the database is setup can be found in the [setup migration file](supabase/migrations/20240813165645_project-setup.sql).
+A good summary of how the database is setup can be found in the [setup migration file](geobase/migrations/20240813165645_project-setup.sql).
 
 ### Tables
 
