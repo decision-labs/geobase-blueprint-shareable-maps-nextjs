@@ -51,17 +51,57 @@ yarn
 pnpm install
 ```
 
-Run dev:
+Run dev ideally with the experimental https flag:
 
 ```bash
-npm run dev
+npm run dev --experimental-https
 # or
-yarn dev
+yarn dev --experimental-https
 # or
-pnpm dev
+pnpm dev --experimental-https
 ```
 
+> **⚠️ Note:** Without the experimental https flag (`--experimental-https`), you will have a slightly different dev when doing the sign up flow. Namely, the link from your email to verify your account will be go to `https://localhost:3000/...` showing you an error. You can simply ignore the error and manually navigate to the url (without https) in the browser.
+
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the blueprint in action.
+
+## Migration
+
+### Using `psql` version compatible with your Geobase project (postgres 14 or 15)
+
+```sh
+# set the database uri in your environment, you can get it from the geobase project settings page
+DATABASE_URI=<your-database-uri>
+psql -d $DATABASE_URI -f geobase/migrations/20240813165645_project-setup.sql
+```
+
+### Manually via the studio
+
+1. Go to the studio
+2. Navigate to the Editor page
+3. Copy the contents of the [setup migration file](geobase/migrations/20240813165645_project-setup.sql)
+4. Click run.
+
+## Github auth provider
+
+**1. Enable Github Provider:** Go to the Authentication tab in the studio. Then select Providers and select Github.
+
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://d2w9rnfcy7mm78.cloudfront.net/31546330/original_3b18b9f77ad2572fb987b6dd1757d1b5.png?1729340128?bc=0">
+    <source media="(prefers-color-scheme: light)" srcset="https://d2w9rnfcy7mm78.cloudfront.net/31546361/original_498a85346e00356a784c388d22e64fce.png?1729340373?bc=0">
+    <img alt="github oauth app" src="https://d2w9rnfcy7mm78.cloudfront.net/31546361/original_498a85346e00356a784c388d22e64fce.png?1729340373?bc=0">
+</picture>
+
+
+**2. Create a Github OAuth App:** Go to Github and create a new OAuth app. You can use the callback url provided in the Github Providers tab in the studio.
+
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://d2w9rnfcy7mm78.cloudfront.net/31546396/original_bf7559b00306b732ca29bca9fc2f75e8.png?1729340677?bc=0">
+    <source media="(prefers-color-scheme: light)" srcset="https://d2w9rnfcy7mm78.cloudfront.net/31546415/original_6a5177dd66067718214c014bb7a5d9a9.png?1729340785?bc=0">
+    <img alt="github oauth app" src="https://d2w9rnfcy7mm78.cloudfront.net/31546415/original_6a5177dd66067718214c014bb7a5d9a9.png?1729340785?bc=0">
+</picture>
+
+**3.  On github apps:** Add the credentials into the Github tab in the studio.
 
 ## Deployment
 
