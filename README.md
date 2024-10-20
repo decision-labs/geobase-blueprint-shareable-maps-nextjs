@@ -65,7 +65,9 @@ pnpm dev --experimental-https
 
 > **⚠️ Note:** Without the experimental https flag (`--experimental-https`), you will have a slightly different dev when doing the sign up flow. Namely, the link from your email to verify your account will be go to `https://localhost:3000/...` showing you an error. You can simply ignore the error and manually navigate to the url (without https) in the browser.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the blueprint in action.
+Open [https://localhost:3000](https://localhost:3000) with your browser to see the blueprint in action. 
+
+> **⚠️ Note:** If you are running without `--experimental-https` use [http://localhost:3000](http://localhost:3000)
 
 ### Migration
 
