@@ -24,14 +24,40 @@ Once you're Geobase project is created [click here](https://github.com/new?templ
 
 ## Development
 
+### Migration
+
+#### Option 1: Using `psql` version compatible with your Geobase project (postgres 14 or 15)
+
+![geobase-settings](https://d2w9rnfcy7mm78.cloudfront.net/31914368/original_171c024fa1a8608349202e2fbbf9e7bf.png?1730637777?bc=0)
+
+```sh
+# set the database uri in your environment, you can get it from the geobase project settings page
+DATABASE_URI=<your-database-uri>
+psql -d $DATABASE_URI -f geobase/migrations/20240813165645_project-setup.sql
+```
+
+#### Option 2: Manually via the studio
+
+1. Go to the studio
+2. Navigate to the SQL Editor page
+3. Copy the contents of the [setup migration file](geobase/migrations/20240813165645_project-setup.sql)
+4. Click run.
+
+See the video below for a walkthrough:
+https://attachments.are.na/31914482/cb5d32d0bfb58dd683b98bfdf3c94c51.mp4?1730638476
+
 ### Environment Variables
 
 You only need to have these variables set:
 
 ```
-NEXT_PUBLIC_GEOBASE_URL=https://[YOUR_PROJECT_REF].geobase.app
+NEXT_PUBLIC_GEOBASE_URL=https://YOUR_PROJECT_REF.geobase.app
 NEXT_PUBLIC_GEOBASE_ANON_KEY=YOUR_GEOBASE_PROJECT_ANON_KEY
 ```
+
+You can find the project ref and anon key in the Geobase project settings page.
+
+![geobase-settings](https://d2w9rnfcy7mm78.cloudfront.net/31914170/original_ef57a92228a6a65472ebd2dfb766a8d7.png?1730636735?bc=0)
 
 ### Local Development
 
@@ -69,22 +95,6 @@ Open [https://localhost:3000](https://localhost:3000) with your browser to see t
 
 > **⚠️ Note:** If you are running without `--experimental-https` use [http://localhost:3000](http://localhost:3000)
 
-### Migration
-
-#### Option 1: Using `psql` version compatible with your Geobase project (postgres 14 or 15)
-
-```sh
-# set the database uri in your environment, you can get it from the geobase project settings page
-DATABASE_URI=<your-database-uri>
-psql -d $DATABASE_URI -f geobase/migrations/20240813165645_project-setup.sql
-```
-
-#### Option 2: Manually via the studio
-
-1. Go to the studio
-2. Navigate to the SQL Editor page
-3. Copy the contents of the [setup migration file](geobase/migrations/20240813165645_project-setup.sql)
-4. Click run.
 
 ### Github auth provider
 
