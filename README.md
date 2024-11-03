@@ -44,7 +44,8 @@ psql -d $DATABASE_URI -f geobase/migrations/20240813165645_project-setup.sql
 4. Click run.
 
 See the video below for a walkthrough:
-https://attachments.are.na/31914482/cb5d32d0bfb58dd683b98bfdf3c94c51.mp4?1730638476
+
+https://attachments.are.na/31914482/cb5d32d0bfb58dd683b98bfdf3c94c51.mp4
 
 ### Environment Variables
 
