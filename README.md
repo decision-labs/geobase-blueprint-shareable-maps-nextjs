@@ -83,7 +83,7 @@ pnpm install
 Run dev ideally with the experimental https flag:
 
 ```bash
-npm run dev --experimental-https
+npm run dev -- --experimental-https
 # or
 yarn dev --experimental-https
 # or
