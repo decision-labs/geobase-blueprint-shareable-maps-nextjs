@@ -84,6 +84,7 @@ export function MapController({
 	const [selectedTool, setSelectedTool] = useState<Tool>("hand");
 	const [isDrawing, setIsDrawing] = useState(false);
 	const [isErasing, setIsErasing] = useState(false);
+	const isErasingRef = useRef(false);
 	const [featuresToErase, setFeaturesToErase] = useState<string[]>([]);
 	const featuresToEraseRef = useRef<string[]>([]);
 	const [annotationText, setAnnotationText] = useState("");
@@ -466,29 +467,43 @@ export function MapController({
 					},
 				],
 			});
-		} else if (selectedTool === "eraser" && isErasing) {
-			if (!mapRef.current) return;
-			const m = mapRef.current.getMap();
-			const features = m.queryRenderedFeatures(e.point, {
-				layers: ["drawings-layer", "pins-layer", "annotations-layer"],
-			});
-			if (features.length > 0) {
-				const featureId = `${features[0].layer.source} ${features[0].properties.id}`;
-				setFeaturesToErase((prev) => {
-					// Use a Set to ensure uniqueness
-					const uniqueFeatures = new Set(prev);
-					uniqueFeatures.add(featureId);
-					return Array.from(uniqueFeatures);
-				});
-				m.setFeatureState(
-					{
-						source: features[0].source,
-						sourceLayer: features[0].sourceLayer,
-						id: features[0].id,
-					},
-					{ markedDelete: true },
-				);
-			}
+		} else if (selectedTool === "eraser" && isErasingRef.current) {
+			collectFeaturesToErase(e.point);
+		}
+	};
+
+	const collectFeaturesToErase = (point: { x: number; y: number }) => {
+		if (!mapRef.current) return;
+		const m = mapRef.current.getMap();
+		// Thin lines are hard to hit with a single pixel — use a small pad.
+		const pad = 12;
+		const features = m.queryRenderedFeatures(
+			[
+				[point.x - pad, point.y - pad],
+				[point.x + pad, point.y + pad],
+			],
+			{ layers: ["drawings-layer", "pins-layer", "annotations-layer"] },
+		);
+		if (features.length === 0) return;
+
+		const feature = features[0];
+		const rowId = feature.properties?.id ?? feature.id;
+		if (rowId === undefined || rowId === null) return;
+
+		const featureId = `${feature.source} ${rowId}`;
+		const next = Array.from(new Set([...featuresToEraseRef.current, featureId]));
+		featuresToEraseRef.current = next;
+		setFeaturesToErase(next);
+
+		if (feature.id !== undefined) {
+			m.setFeatureState(
+				{
+					source: feature.source,
+					sourceLayer: feature.sourceLayer,
+					id: feature.id,
+				},
+				{ markedDelete: true },
+			);
 		}
 	};
 
@@ -529,11 +544,16 @@ export function MapController({
 				updateTiles(drawingsSourceConfig);
 			}
 		} else if (selectedTool === "eraser") {
+			isErasingRef.current = false;
 			setIsErasing(false);
-			for (const featureId of featuresToEraseRef.current) {
+			const toErase = [...featuresToEraseRef.current];
+			featuresToEraseRef.current = [];
+			setFeaturesToErase([]);
+			for (const featureId of toErase) {
 				const [sourceId, featureIdStr] = featureId.split(" ");
 				const table = sourceId.replace("public.", "");
-				const id = parseInt(featureIdStr);
+				const id = parseInt(featureIdStr, 10);
+				if (!Number.isFinite(id)) continue;
 				await deleteFeature(table, id);
 			}
 
@@ -560,7 +580,10 @@ export function MapController({
 				],
 			});
 		} else if (selectedTool === "eraser") {
+			isErasingRef.current = true;
 			setIsErasing(true);
+			// Click (no drag) should still erase under the cursor.
+			collectFeaturesToErase(e.point);
 		}
 		window.addEventListener("mouseup", mapMouseUp);
 	};
@@ -666,7 +689,7 @@ export function MapController({
 							}}
 						/>
 					</Source>
-					<Source type="vector" {...drawingsSourceConfig}>
+					<Source type="vector" {...drawingsSourceConfig} promoteId="id">
 						<Layer
 							id="drawings-layer"
 							type="line"
@@ -674,7 +697,7 @@ export function MapController({
 							{...drawingStyles}
 						/>
 					</Source>
-					<Source type="vector" {...pinsSourceConfig}>
+					<Source type="vector" {...pinsSourceConfig} promoteId="id">
 						<Layer
 							id="pins-layer"
 							type="symbol"
@@ -714,7 +737,7 @@ export function MapController({
 							}}
 						/>
 					</Source>
-					<Source type="vector" {...annotationsSourceConfig}>
+					<Source type="vector" {...annotationsSourceConfig} promoteId="id">
 						<Layer
 							id="annotations-layer"
 							type="symbol"
