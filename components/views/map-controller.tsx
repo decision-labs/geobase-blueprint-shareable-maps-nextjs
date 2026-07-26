@@ -216,6 +216,34 @@ export function MapController({
 		updateTiles(annotationsSourceConfig);
 	}, [mapProject]);
 
+	// Refresh vector tiles when other clients add/update/remove features on this map
+	useEffect(() => {
+		if (!mapProject?.id) return;
+
+		const channel = geobase.supabase
+			.channel(`map-features:${mapProject.id}`)
+			.on(
+				"postgres_changes",
+				{ event: "*", schema: "public", table: "smb_pins", filter: `project_id=eq.${mapProject.id}` },
+				() => updateTiles(pinsSourceConfig),
+			)
+			.on(
+				"postgres_changes",
+				{ event: "*", schema: "public", table: "smb_drawings", filter: `project_id=eq.${mapProject.id}` },
+				() => updateTiles(drawingsSourceConfig),
+			)
+			.on(
+				"postgres_changes",
+				{ event: "*", schema: "public", table: "smb_annotations", filter: `project_id=eq.${mapProject.id}` },
+				() => updateTiles(annotationsSourceConfig),
+			)
+			.subscribe();
+
+		return () => {
+			geobase.supabase.removeChannel(channel);
+		};
+	}, [mapProject?.id]);
+
 	useEffect(() => {
 		if (!mapRef.current) return;
 
