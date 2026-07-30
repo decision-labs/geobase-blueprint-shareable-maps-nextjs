@@ -60,22 +60,30 @@ export default function MapPage() {
 	useEffect(() => {
 		const uuid = router.query.id as string | undefined;
 		if (!uuid) return;
-		if (uuid && !mapProject) {
-			fetchMapProject(uuid).then((project) => {
-				console.log("Project fetched:", project);
-				if (!project) {
-					router.push("/404");
-				}
-				setMapProject(project);
-			});
-		} else {
+
+		let cancelled = false;
+		(async () => {
+			// Wait for auth session before fetching so owners can load unpublished maps (avoids empty RLS read → 404).
+			const { data: sessionData } = await geobase.supabase.auth.getSession();
+			if (!sessionData.session && !geobase.sessionRef.current) {
+				await new Promise((r) => setTimeout(r, 500));
+			}
+			if (cancelled) return;
 			setLoadingMessage("Getting map project data...");
-			fetchMapProject(uuid).then((project) => {
-				console.log("New project fetched:", project);
-				setMapProject(project);
-				setIsFirstLoad(true);
-			});
-		}
+			const project = await fetchMapProject(uuid);
+			console.log("Project fetched:", project);
+			if (cancelled) return;
+			if (!project) {
+				router.push("/404");
+				return;
+			}
+			setMapProject(project);
+			setIsFirstLoad(true);
+		})();
+
+		return () => {
+			cancelled = true;
+		};
 	}, [router.query.id]);
 
 	useEffect(() => {

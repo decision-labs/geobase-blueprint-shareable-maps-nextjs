@@ -90,11 +90,17 @@ alter table public.smb_drawings enable row level security;
 
 -- Allow read access if the drawing's project is published
 create policy "Allow published map drawings read access" on public.smb_drawings
-  for select using (project_id in (select project_id from public.smb_map_projects where published = true));
+  for select using (project_id in (select id from public.smb_map_projects where published = true));
 
 -- Authed, only the drawing's owner can update, read, or delete
 create policy "Allow drawing owner general access" on public.smb_drawings
   for all using ((select auth.uid()) = profile_id);
+
+-- Map project owner can delete any drawing on their map
+create policy "Allow map owner delete drawings" on public.smb_drawings
+  for delete using (
+    project_id in (select id from public.smb_map_projects where profile_id = (select auth.uid()))
+  );
 
 --
 -- Pins Table
@@ -116,11 +122,17 @@ alter table public.smb_pins enable row level security;
 
 -- Allow read access if the pin's project is published
 create policy "Allow published map pins read access" on public.smb_pins
-  for select using (project_id in (select project_id from public.smb_map_projects where published = true));
+  for select using (project_id in (select id from public.smb_map_projects where published = true));
 
 -- Authed, only the pin's owner can update, read, or delete
 create policy "Allow pin owner general access" on public.smb_pins
   for all using ((select auth.uid()) = profile_id);
+
+-- Map project owner can delete any pin on their map
+create policy "Allow map owner delete pins" on public.smb_pins
+  for delete using (
+    project_id in (select id from public.smb_map_projects where profile_id = (select auth.uid()))
+  );
 
 --
 -- Annotations Table
@@ -142,11 +154,17 @@ alter table public.smb_annotations enable row level security;
 
 -- Allow read access if the annotation's project is published
 create policy "Allow published map annotations read access" on public.smb_annotations
-  for select using (project_id in (select project_id from public.smb_map_projects where published = true));
+  for select using (project_id in (select id from public.smb_map_projects where published = true));
 
 -- Authed, only the annotation's owner can update, read, or delete
 create policy "Allow annotation owner general access" on public.smb_annotations
   for all using ((select auth.uid()) = profile_id);
+
+-- Map project owner can delete any annotation on their map
+create policy "Allow map owner delete annotations" on public.smb_annotations
+  for delete using (
+    project_id in (select id from public.smb_map_projects where profile_id = (select auth.uid()))
+  );
 
 --
 -- Attachments Table
@@ -168,11 +186,17 @@ alter table public.smb_attachments enable row level security;
 
 -- Allow read access if the attachment's project is published
 create policy "Allow published map attachments read access" on public.smb_attachments
-  for select using (project_id in (select project_id from public.smb_map_projects where published = true));
+  for select using (project_id in (select id from public.smb_map_projects where published = true));
 
 -- Authed, only the attachment's owner can update, read, or delete
 create policy "Allow attachment owner general access" on public.smb_attachments
   for all using ((select auth.uid()) = profile_id);
+
+-- Map project owner can delete any attachment on their map
+create policy "Allow map owner delete attachments" on public.smb_attachments
+  for delete using (
+    project_id in (select id from public.smb_map_projects where profile_id = (select auth.uid()))
+  );
 
 
 --
