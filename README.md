@@ -60,7 +60,7 @@ You can find the project ref and anon key in the Geobase project settings page.
 
 ![geobase-settings](https://d2w9rnfcy7mm78.cloudfront.net/31914170/original_ef57a92228a6a65472ebd2dfb766a8d7.png?1730636735?bc=0)
 
-### Local Development
+### Run the app
 
 Create an `.env.local` file with the same contents as above.
 
@@ -96,6 +96,21 @@ Open [https://localhost:3000](https://localhost:3000) with your browser to see t
 
 > **⚠️ Note:** If you are running without `--experimental-https` use [http://localhost:3000](http://localhost:3000)
 
+
+### How to use this app
+
+In order to use this app, first do the following:
+* Open the app in the browser and again in a private browser window (simulating 2 users visiting the app), or in 2 different browsers.
+* In each, signup using 2 different emails (if you have gmail, you can simulate 2 emails by appending a `+any_ramdom_text` to your account name. For example: `my.name+any_text@gmail.com`)
+* Ensure that you are logged in with both users
+* In one of the browsers create a new map by clicking on "Create new map". Give it a name and press Enter ![img.png](img.png)
+* use the Pencil tool to draw something on the map ![img_3.png](img_3.png) 
+* Navigate to sharing the map ![img_4.png](img_4.png)
+* And then enabling the flag to make the map public ![img_2.png](img_2.png)
+* And copy the URL to this map
+* Now in the browser of the 2nd user (that is also logged in), paste this URL in the browser and you should see what you drew with the pencil took ![img_5.png](img_5.png)
+* Now each user can make changes to the map and these changes will be reflected in the browser of both users ![img_6.png](img_6.png)
+ 
 
 ### Github auth provider
 
